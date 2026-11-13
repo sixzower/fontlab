@@ -30,4 +30,5 @@ assert.throws(()=>Core.normalize({w:8,h:16,glyphs:[{c:'a',p:'0'}]}),/ไม่�
  assert.strictEqual(Core.addShadow(pr,{...g,c:'ั'},'down-right').a,7,'marks keep their advance');
  const keep=Array(128).fill(0);keep[0]=1;keep[9]=3;assert.strictEqual(Core.addShadow(pr,{c:'ก',a:8,p:keep.join('')},'down-right').p[9],'3','never overwrites existing pixels');
  assert.strictEqual(Core.addShadow(pr,g,'down').p[6*8+6],'2');assert.strictEqual(Core.addShadow(pr,g,'down-left').p[6*8+5],'2');}
+{const r=Core.removeShadow({c:'ก',a:8,p:'0120'});assert.strictEqual(r.p,'0100');assert.strictEqual(r.removed,1);assert.strictEqual(r.changed,true);assert.strictEqual(Core.removeShadow({c:'ก',a:8,p:'0100'}).changed,false);}
 console.log('fontlab core ok',n+' roundtrips');
