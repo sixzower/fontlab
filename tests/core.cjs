@@ -31,4 +31,8 @@ assert.throws(()=>Core.normalize({w:8,h:16,glyphs:[{c:'a',p:'0'}]}),/ไม่�
  const keep=Array(128).fill(0);keep[0]=1;keep[9]=3;assert.strictEqual(Core.addShadow(pr,{c:'ก',a:8,p:keep.join('')},'down-right').p[9],'3','never overwrites existing pixels');
  assert.strictEqual(Core.addShadow(pr,g,'down').p[6*8+6],'2');assert.strictEqual(Core.addShadow(pr,g,'down-left').p[6*8+5],'2');}
 {const r=Core.removeShadow({c:'ก',a:8,p:'0120'});assert.strictEqual(r.p,'0100');assert.strictEqual(r.removed,1);assert.strictEqual(r.changed,true);assert.strictEqual(Core.removeShadow({c:'ก',a:8,p:'0100'}).changed,false);}
+{const pr=Core.newProject({console:'gba',w:8,h:16,bpp:4,charset:['ก','ั']});const px=Array(128).fill(0);px[7*8+3]=1;
+ assert.strictEqual(Core.autoSpacing(pr,{c:'ก',a:8,p:px.join('')},1).a,5,'right edge col 3 + 1 + gap 1');assert.strictEqual(Core.autoSpacing(pr,{c:'ก',a:8,p:px.join('')},0).a,4);
+ assert.strictEqual(Core.autoSpacing(pr,{c:'ั',a:0,p:px.join('')},1).changed,false,'marks keep their advance');assert.strictEqual(Core.autoSpacing(pr,{c:' ',a:4,p:'0'.repeat(128)},1).changed,false,'empty glyphs keep theirs');
+ assert.deepStrictEqual([...Core.widthsBank({glyphs:[{a:7},{a:0},{a:300}]})],[7,0,255]);}
 console.log('fontlab core ok',n+' roundtrips');

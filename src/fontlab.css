@@ -164,3 +164,6 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .cdot.ok{background:var(--green)}.cdot.busy{background:var(--orange);animation:pulse 1s ease-in-out infinite}.cdot.err{background:var(--red)}
 @keyframes pulse{50%{opacity:.35}}
 .sheet .cdot{position:static;flex:none;box-shadow:none}
+
+/* saved line */
+.saved{margin:2px 0 0!important;font-size:13px;color:var(--label2)}.saved.ok{color:var(--green)}.saved.busy{color:var(--orange)}.saved.err{color:var(--red)}

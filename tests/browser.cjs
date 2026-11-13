@@ -70,6 +70,12 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('#u-undo');assert.strictEqual(await shadows(),before,'one undo removes every shadow');await page.click('#u-redo');assert.strictEqual(await shadows(),after,'redo restores them');
  await page.click('[data-act=shadow]');await page.click('#sh-scope [data-s=all]');assert.ok(/ลบเงาทั้งหมด \(\d+ อักษร/.test(await page.locator('#sh-rm').innerText()),'remove button counts shadows');
  await page.click('#sh-rm');assert.strictEqual(await shadows(),0,'all shadows removed in one step');await page.click('#u-undo');assert.strictEqual(await shadows(),after,'undo brings them back');
+ /* explicit save + auto spacing */
+ await page.locator('#u-save').scrollIntoViewIfNeeded();await page.click('#u-save');await page.waitForFunction(()=>/บันทึกแล้ว ✓/.test(document.querySelector('.toast')?.textContent||''),null,{timeout:8000});
+ await page.waitForFunction(()=>/✓ บันทึกในเครื่องแล้ว/.test(document.querySelector('#s-saved')?.textContent||''),null,{timeout:8000});
+ await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur),g=f.glyphs.find(x=>x.c==='ก');g.p='0'.repeat(f.w*6)+'0111'+'0'.repeat(f.w-4)+'0'.repeat(f.w*(f.h-7));g.a=f.w;});
+ const adv=()=>page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);return f.glyphs.find(x=>x.c==='ก').a;});
+ await page.click('[data-act=spacing]');await page.click('#sp-scope [data-s=all]');await page.click('#sp-go');assert.ok(await adv()<8,'auto spacing tightened the advance');await page.click('#u-undo');assert.strictEqual(await adv(),8,'one undo restores spacing');
  /* built-in is read only, duplicate to edit */
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-sword-shield-th]');
  await page.click('#edit');assert.ok(await page.locator('.toast.on').count(),'read-only toast');
