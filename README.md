@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.40** Offline mode: `sw.js` precaches the app and serves the cache only when the network fails (network-first, always revalidated, so online users never see stale files); Supabase and `version.json` are never intercepted; older `?v=` copies are pruned; leftover workers/caches from the removed app are still cleared.
 - **1.0.39** Missing features: delete / rename / reorder glyphs (one undo step each, also for add); new font from a .ttf/.otf/.woff file (rasterised with the browser text engine, marks isolated from their base letter); game text-box preview (console screen width, wrapping, frame); keyboard drawing (arrows, Space/Enter, Backspace) with a live position announcement; glyph list renders in chunks of 240.
 - **1.0.38** iOS polish (part 1): form sheets get a header bar (Cancel · title · primary action) and can be swiped down; softer focus ring; studio has a back button and a “more” menu (settings, export); long-press / right-click on a font card opens its menu; console rules as inset lists; larger small text; sticky glyph column and wider cards on desktop.
 - **1.0.37** The four big buttons under the glyph list (shadow, auto spacing, check, add glyph) became an iOS-style inset list: icon, title with a short description, chevron, hairline separators.

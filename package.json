@@ -1,10 +1,10 @@
 {
   "name": "fontlab",
-  "version": "1.0.39",
+  "version": "1.0.40",
   "private": true,
   "scripts": {
     "dev": "python3 -m http.server 5173 --bind 0.0.0.0",
-    "check": "node --check src/core.js && node --check src/cloud.js && node --check src/app.js && node --check src/config.js",
+    "check": "node --check src/core.js && node --check src/cloud.js && node --check src/app.js && node --check src/config.js && node --check sw.js",
     "build": "node scripts/build-data.cjs && node scripts/build-single.cjs",
     "icons": "node scripts/build-icons.cjs",
     "test": "npm run build && node tests/core.cjs && node tests/sandbox.cjs && node tests/browser.cjs"
