@@ -229,3 +229,11 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 }
 
 @media(min-width:900px){.dup-side{display:none}.side-row{justify-content:flex-start;padding-left:10px}}
+
+/* neon status light: a slow glowing pulse (grey = no data stays still) */
+.cdot.ok{--glow:#2bff77;background:#2bff77}.cdot.dirty{--glow:#ffa51f;background:#ffa51f}.cdot.busy{--glow:#ffa51f;background:#ffa51f}.cdot.err{--glow:#ff4d42;background:#ff4d42}
+.cdot.ok,.cdot.dirty,.cdot.err{animation:neon 3s ease-in-out infinite}
+.cdot.busy{animation:neon 1.4s ease-in-out infinite}
+@keyframes neon{
+ 0%,100%{opacity:.5;box-shadow:0 0 0 2px var(--bg),0 0 2px 0 var(--glow)}
+ 50%{opacity:1;box-shadow:0 0 0 2px var(--bg),0 0 6px 1px var(--glow),0 0 14px 4px var(--glow)}}
