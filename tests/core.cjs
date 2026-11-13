@@ -22,4 +22,12 @@ const f=B[1],cl=f.glyphs.find(g=>g.c.length>1);assert.ok(cl);assert.strictEqual(
 const z=Core.zip([{name:'a.txt',data:new TextEncoder().encode('hi')}]);assert.strictEqual(z[0],0x50);
 // bad data is rejected
 assert.throws(()=>Core.normalize({w:8,h:16,glyphs:[{c:'a',p:'0'}]}),/ไม่ตรงกับขนาด/);
+// automatic shadow
+{const pr=Core.newProject({console:'gba',w:8,h:16,bpp:4,charset:['ก','ั']});const px=Array(128).fill(0);px[5*8+6]=1;px[15*8+3]=1;px[5*8+2]=2;
+ const g={c:'ก',a:7,p:px.join('')},r=Core.addShadow(pr,g,'down-right');
+ assert.strictEqual(r.p[6*8+7],'2','shadow one step down-right');assert.strictEqual(r.p[5*8+2],'0','old shadow cleared');assert.strictEqual(r.clipped,1,'ink on the bottom row cannot cast inside the box');assert.strictEqual(r.a,8,'advance grows to hold the shadow');
+ assert.strictEqual(Core.addShadow(pr,g,'down-right',{clear:false}).p[5*8+2],'2','keep old shadow when asked');
+ assert.strictEqual(Core.addShadow(pr,{...g,c:'ั'},'down-right').a,7,'marks keep their advance');
+ const keep=Array(128).fill(0);keep[0]=1;keep[9]=3;assert.strictEqual(Core.addShadow(pr,{c:'ก',a:8,p:keep.join('')},'down-right').p[9],'3','never overwrites existing pixels');
+ assert.strictEqual(Core.addShadow(pr,g,'down').p[6*8+6],'2');assert.strictEqual(Core.addShadow(pr,g,'down-left').p[6*8+5],'2');}
 console.log('fontlab core ok',n+' roundtrips');

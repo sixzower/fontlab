@@ -227,7 +227,7 @@ function mountStudio(){
   +'<div class="opsrow">'+[['left','shift-l','เลื่อนซ้าย'],['right','shift-r','เลื่อนขวา'],['up','shift-u','เลื่อนขึ้น'],['down','shift-d','เลื่อนลง'],['fliph','flip-h','พลิกแนวนอน'],['flipv','flip-v','พลิกแนวตั้ง'],['copy','copy','คัดลอก'],['paste','paste','วาง'],['clear','clear','ล้างอักษร']].map(([i,a,l])=>'<button class="icon-btn" data-op="'+a+'" aria-label="'+l+'" title="'+l+'">'+ic(i)+'</button>').join('')+'</div>'
   +'<div class="legend" id="s-legend">'+(Core.tooShort(f.h)?'':Core.zonesFor(f.h).map(z=>'<span><i style="background:'+z.color+'"></i>'+esc(z.name)+' · แถว '+z.rows[0]+'–'+z.rows[1]+'</span>').join('')+'<span><i style="background:#ff3b30"></i>แถวที่ห้ามใช้สำหรับตัวนี้</span>')+'</div><div class="advance"><label for="s-adv" style="font-size:15px;color:var(--label2)">ระยะอักษร</label><input id="s-adv" type="range" min="0" max="'+f.w+'" aria-label="ระยะอักษร"><b id="s-advv" style="min-width:48px;text-align:right"></b></div></div>'
   +'<div class="panel"><h2>ตัวอย่างข้อความ</h2><textarea class="preview-text" id="s-text" aria-label="ข้อความตัวอย่าง" placeholder="พิมพ์ข้อความเพื่อดูฟอนต์">'+esc(S.previewText||sampleOf(f))+'</textarea><div class="preview-box" id="s-prev-box" style="background:'+c.colors[0]+'"><canvas id="s-prev"></canvas></div></div></div>'
-  +'<div class="panel"><h2>อักษรทั้งหมด</h2><label class="search" style="margin:0 0 10px">'+ic('search')+'<input id="s-find" type="search" placeholder="ค้นหาอักษร" aria-label="ค้นหาอักษร"></label><div class="glyphs" id="s-glyphs" role="group" aria-label="รายการอักษร"></div>'+'<button class="btn tint block" data-act="check-all" style="margin-top:10px">'+ic('ruler')+' ตรวจเกินเขตทั้งฟอนต์</button>'+(ro?'':'<button class="btn tint block" data-act="add-glyph" style="margin-top:8px">'+ic('plus')+' เพิ่มอักษร</button>')+'</div></div>';
+  +'<div class="panel"><h2>อักษรทั้งหมด</h2><label class="search" style="margin:0 0 10px">'+ic('search')+'<input id="s-find" type="search" placeholder="ค้นหาอักษร" aria-label="ค้นหาอักษร"></label><div class="glyphs" id="s-glyphs" role="group" aria-label="รายการอักษร"></div>'+'<button class="btn tint block" data-act="shadow" style="margin-top:10px">เพิ่มเงาอัตโนมัติ</button><button class="btn tint block" data-act="check-all" style="margin-top:8px">'+ic('ruler')+' ตรวจเกินเขตทั้งฟอนต์</button>'+(ro?'':'<button class="btn tint block" data-act="add-glyph" style="margin-top:8px">'+ic('plus')+' เพิ่มอักษร</button>')+'</div></div>';
  const cv=$('#edit',el);edit={cv,ctx:cv.getContext('2d')};
  buildGlyphList();selectGlyph(Math.min(S.idx,f.glyphs.length-1),true);bindEditor(f);updateHistoryButtons();
 }
@@ -270,8 +270,31 @@ function guardEdit(){if(editable())return true;toast('ฟอนต์ในต�
 function applyGlyph(i,state,{record=true,from}={}){const f=editable();if(!f)return;const g=f.glyphs[i],before=from||{p:g.p,a:g.a};g.p=state.p;g.a=state.a;
  if(record&&(before.p!==g.p||before.a!==g.a)){S.undo.push({i,from:before,to:{p:g.p,a:g.a}});if(S.undo.length>300)S.undo.shift();S.redo=[];}
  touch(f);refreshThumb(i);if(i===S.idx){const adv=$('#s-adv');adv.value=g.a;$('#s-advv').textContent=g.a+' px';drawEditor();}drawPreview();updateHistoryButtons();}
-function stepHistory(dir){const f=editable();if(!f)return;const from=dir<0?S.undo:S.redo,to=dir<0?S.redo:S.undo,e=from.pop();if(!e)return;to.push(e);const st=dir<0?e.from:e.to;
- const g=f.glyphs[e.i];g.p=st.p;g.a=st.a;touch(f);refreshThumb(e.i);selectGlyph(e.i);drawPreview();updateHistoryButtons();}
+function stepHistory(dir){const f=editable();if(!f)return;const from=dir<0?S.undo:S.redo,to=dir<0?S.redo:S.undo,e=from.pop();if(!e)return;to.push(e);
+ const list=e.multi||[e];for(const x of list){const st=dir<0?x.from:x.to,g=f.glyphs[x.i];g.p=st.p;g.a=st.a;refreshThumb(x.i);}
+ touch(f);selectGlyph(list[0].i);drawPreview();updateHistoryButtons();}
+/* apply several glyph changes as one undo step */
+function applyMany(changes){const f=editable();if(!f||!changes.length)return;const multi=changes.map(c=>{const g=f.glyphs[c.i],from={p:g.p,a:g.a};g.p=c.p;g.a=c.a;refreshThumb(c.i);return{i:c.i,from,to:{p:c.p,a:c.a}};});
+ S.undo.push({multi});if(S.undo.length>300)S.undo.shift();S.redo=[];touch(f);selectGlyph(S.idx);drawPreview();updateHistoryButtons();}
+function shadowSheet(){const f=editable();if(!f)return guardEdit();
+ if(Core.maxIndex(f)<2)return toast('ความลึกสี '+f.bpp+' บิตไม่มีสีเงา (ต้องอย่างน้อย 2 บิต) เปลี่ยนได้ที่ปุ่มตั้งค่า');
+ const dirs=[['down-right','↘ ขวาล่าง'],['down','↓ ล่าง'],['right','→ ขวา'],['down-left','↙ ซ้ายล่าง']];let dir='down-right',scope='one',clear=true;
+ sheet('<h2>เพิ่มเงาอัตโนมัติ</h2><p class="sub">สร้างพิกเซลเงา (สีดัชนี 2) ถัดจากหมึก (สี 1) ในทิศที่เลือก ไม่ทับพิกเซลเดิม และไม่ออกนอกช่อง</p>'
+  +'<div class="field"><span>ทิศของเงา</span><div class="seg" role="group" id="sh-dir">'+dirs.map(([d,l])=>'<button data-d="'+d+'" aria-pressed="'+(d===dir)+'">'+l+'</button>').join('')+'</div></div>'
+  +'<div class="field"><span>ใช้กับ</span><div class="seg" role="group" id="sh-scope"><button data-s="one" aria-pressed="true">อักษรนี้</button><button data-s="all" aria-pressed="false">ทั้งฟอนต์</button></div></div>'
+  +'<div class="group" style="margin:0 0 12px"><div class="row"><span class="grow">ล้างเงาเดิมก่อน<small>ปิดไว้เพื่อเก็บเงาที่วาดเองและเพิ่มเงาใหม่ซ้อน</small></span><button class="switch" role="switch" id="sh-clear" aria-checked="true" aria-label="ล้างเงาเดิมก่อน"></button></div></div>'
+  +'<div class="check" id="sh-info" role="status"></div><div style="display:flex;gap:16px;justify-content:center;margin:8px 0 14px"><div style="text-align:center;font-size:12px;color:var(--label2)">ก่อน<div class="preview-box" style="padding:6px;margin-top:4px;background:'+pal(f)[0]+'"><canvas id="sh-a"></canvas></div></div><div style="text-align:center;font-size:12px;color:var(--label2)">หลัง<div class="preview-box" style="padding:6px;margin-top:4px;background:'+pal(f)[0]+'"><canvas id="sh-b"></canvas></div></div></div>'
+  +'<button class="btn block" id="sh-go">เพิ่มเงา</button>',s=>{
+  const draw=(cv,g)=>{const sc=Math.max(2,Math.min(8,Math.floor(96/Math.max(f.w,f.h))));cv.width=f.w*sc;cv.height=f.h*sc;const cx=cv.getContext('2d');cx.fillStyle=pal(f)[0];cx.fillRect(0,0,cv.width,cv.height);drawGlyph(cx,f,g,0,0,sc,pal(f));};
+  const targets=()=>scope==='all'?f.glyphs.map((g,i)=>i):[S.idx];
+  const refresh=()=>{const g=f.glyphs[S.idx],r=Core.addShadow(f,g,dir,{clear});draw($('#sh-a',s),g);draw($('#sh-b',s),{...g,p:r.p});
+   let n=0,clip=0;for(const i of targets()){const x=Core.addShadow(f,f.glyphs[i],dir,{clear});if(x.changed)n++;clip+=x.clipped;}
+   $('#sh-info',s).textContent=(scope==='all'?'จะเปลี่ยน '+n+' จาก '+f.glyphs.length+' อักษร':n?'จะเปลี่ยนอักษร “'+glyphLabel(g)+'”':'อักษรนี้ไม่มีอะไรเปลี่ยน (ยังไม่มีหมึก หรือมีเงาอยู่แล้ว)')+(clip?' · '+clip+' พิกเซลหมึกอยู่ขอบช่อง เงาตกนอกช่องจึงไม่ถูกสร้าง':'');$('#sh-go',s).disabled=!n;};
+  $('#sh-dir',s).onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;dir=b.dataset.d;$$('#sh-dir button',s).forEach(x=>x.setAttribute('aria-pressed',x===b));refresh();};
+  $('#sh-scope',s).onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;scope=b.dataset.s;$$('#sh-scope button',s).forEach(x=>x.setAttribute('aria-pressed',x===b));refresh();};
+  $('#sh-clear',s).onclick=e=>{clear=!clear;e.currentTarget.setAttribute('aria-checked',clear);refresh();};
+  $('#sh-go',s).onclick=()=>{const ch=[];for(const i of targets()){const r=Core.addShadow(f,f.glyphs[i],dir,{clear});if(r.changed)ch.push({i,p:r.p,a:r.a});}applyMany(ch);closeSheet();toast('เพิ่มเงาให้ '+ch.length+' อักษรแล้ว · ย้อนกลับได้ด้วยปุ่มย้อนกลับ');};
+  refresh();});}
 const cur=()=>{const f=S.fonts.get(S.cur);return{f,g:f.glyphs[S.idx],buf:Uint8Array.from(f.glyphs[S.idx].p,c=>+c)};};
 function transform(op){if(!guardEdit())return;const {f,g,buf}=cur(),w=f.w,h=f.h;let out=new Uint8Array(w*h);
  if(op.startsWith('shift')){const dx={l:-1,r:1}[op[6]]||0,dy={u:-1,d:1}[op[6]]||0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const sx=x-dx,sy=y-dy;if(sx>=0&&sx<w&&sy>=0&&sy<h)out[y*w+x]=buf[sy*w+sx];}}
@@ -363,7 +386,7 @@ document.addEventListener('click',e=>{const t=e.target;
  const a=t.closest('[data-act]')?.dataset.act;if(!a||t.closest('.sheet'))return;
  if(a==='theme'){applyTheme(isDark()?'light':'dark',true);return;}
  if(a==='new')newFontSheet();else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
- else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;drawEditor();}
+ else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='shadow')shadowSheet();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;drawEditor();}
  else if(a==='dup-edit'){const f=S.fonts.get(S.cur),d=duplicate(f);addFont(d).then(()=>{openStudio(d.id);toast('ทำสำเนาแล้ว แก้ไขได้เลย');});}
  else if(a==='cloud')cloudSheet();});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.query=e.target.value;renderLibrary();}});
