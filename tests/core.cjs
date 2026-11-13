@@ -15,7 +15,7 @@ assert.deepStrictEqual(Core.FORMATS.gba4.pack(t).slice(0,1),[0x13]);
 assert.deepStrictEqual(Core.FORMATS.md4.pack(t).slice(0,1),[0x31]);
 // legacy conversion + built-ins validate
 const B=new Function(require('fs').readFileSync(__dirname+'/../data/fonts.js','utf8')+';return FontLabBuiltins')();
-assert.strictEqual(B.length,4);for(const b of B)Core.normalize(b);
+assert.strictEqual(B.length,5);for(const b of B)Core.normalize(b);
 // composite lookup uses longest cluster
 const f=B[1],cl=f.glyphs.find(g=>g.c.length>1);assert.ok(cl);assert.strictEqual(Core.layoutText(f,cl.c).length,1);
 // zip header sane
