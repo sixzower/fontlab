@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.25** Full-width layout; the page checks `version.json` on load and moves itself to a newer version (no more Ctrl+Shift+R); leftovers of the old app's service worker and caches are removed; assets carry `?v=<version>`.
 - **1.0.24** Repository reduced to FontLab only and reorganised (`src/`, `data/`, `icons/`, `sql/`). The earlier ROM translation workspace and patch site were removed; their last version is commit `6da4962` on `main`.
 - **1.0.23** Points to the live Supabase project; live round trip verified.
 - **1.0.22** Automatic backup with a backup code; Cloud tab and email login removed.

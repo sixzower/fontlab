@@ -386,5 +386,12 @@ addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(TABS.some(x
  if(!Store.persistent())toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บฟอนต์ถาวร · ส่งออกไฟล์ไว้เสมอ');
  syncNow(true,true);
 })();
+/* ---------- freshness: drop leftovers of the old app, load a newer version by itself ---------- */
+(async()=>{
+ try{for(const r of await navigator.serviceWorker?.getRegistrations?.()||[])r.unregister();if(window.caches)for(const k of await caches.keys())caches.delete(k);}catch{}
+ try{const cur=document.querySelector('meta[name=app-version]')?.content;if(!cur||location.protocol==='file:')return;
+  const res=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!res.ok)return;const v=(await res.json()).version;
+  if(v&&v!==cur){const u=new URL(location.href);if(u.searchParams.get('v')!==v){u.searchParams.set('v',v);location.replace(u.href);}}}catch{}
+})();
 window.FontLabApp={S,Store,go,openStudio};
 })();

@@ -24,6 +24,11 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.waitForSelector('.card');
  assert.strictEqual(await page.locator('.card').count(),4,'4 built-in fonts');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/library.png':undefined,...(process.env.SHOTS?{}:{type:'png'})});
+ /* a stale page loads the newer version by itself (no hard refresh), and does not loop */
+ const stale=await ctx.newPage();await stale.route('**/version.json*',r=>r.fulfill({status:200,contentType:'application/json',body:'{"version":"99.0.0"}'}));
+ await stale.goto(base);await stale.waitForURL(/[?&]v=99\.0\.0/,{timeout:8000});await stale.waitForSelector('.card');await stale.waitForTimeout(500);assert.ok(/[?&]v=99\.0\.0/.test(stale.url()),'moved to the new version');await stale.close();
+ const wide=await ctx.newPage();await wide.setViewportSize({width:1900,height:900});await wide.goto(base);await wide.waitForSelector('.card');
+ assert.ok(await wide.evaluate(()=>document.querySelector('.page.on').getBoundingClientRect().width)>1900-260,'page fills the screen next to the sidebar');await wide.close();
  /* theme toggle + iOS menu */
  const bg=()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor);
  assert.strictEqual(await bg(),'rgb(255, 255, 255)','light mode is white');

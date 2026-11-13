@@ -1,6 +1,6 @@
 /* Builds one self-contained download/index.html (CSS, JS, data, font and logo inlined). */
 const fs=require('fs'),path=require('path');
-const dir=path.resolve(__dirname,'..');let html=fs.readFileSync(path.join(dir,'index.html'),'utf8');
+const dir=path.resolve(__dirname,'..');let html=fs.readFileSync(path.join(dir,'index.html'),'utf8').replace(/((?:src|href)="(?:src|data)\/[^"?]+)\?v=[^"]*"/g,'$1"');
 const b64=(f,t)=>'data:'+t+';base64,'+fs.readFileSync(f).toString('base64');
 let css=fs.readFileSync(path.join(dir,'src/fontlab.css'),'utf8').replace("url('../fonts/Prompt-Regular.ttf')","url('"+b64(path.join(dir,'fonts/Prompt-Regular.ttf'),'font/ttf')+"')");
 html=html.replace('<link rel="stylesheet" href="src/fontlab.css">',()=>'<style>'+css+'</style>');
