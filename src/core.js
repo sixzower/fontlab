@@ -188,14 +188,16 @@ function readSheet(pr,rgba,W,H){
  return out;}
 
 /* ---------- text layout (longest cluster first, so Thai vowel+tone combinations use their own glyph) ---------- */
+const MARK_ONLY=/^[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+$/; /* ั ิ ี ึ ื ุ ู ฺ ็ ่ ้ ๊ ๋ ์ ํ ๎ (not ำ) */
 function layoutText(pr,text,maxWidth=Infinity){
- const map=new Map(pr.glyphs.map(g=>[g.c,g])),items=[];let x=0,line=0;
+ const map=new Map(pr.glyphs.map(g=>[g.c,g])),items=[];let x=0,line=0,base=null;
  for(let i=0;i<text.length;){
-  if(text[i]==='\n'){line++;x=0;i++;continue;}
-  let g=null,len=0;for(let n=Math.min(8,text.length-i);n>=1&&!g;n--){const k=text.slice(i,i+n);if(map.has(k)){g=map.get(k);len=n;}}
+  if(text[i]==='\n'){line++;x=0;i++;base=null;continue;}
+  let g=null,len=0,key='';for(let n=Math.min(8,text.length-i);n>=1&&!g;n--){const k=text.slice(i,i+n);if(map.has(k)){g=map.get(k);len=n;key=k;}}
   if(!g){i++;continue;}
+  if(base&&MARK_ONLY.test(key)){items.push({g,x:base.x,line:base.line,mark:true});i+=len;continue;} /* marks sit on the previous letter and add no width */
   if(x+(g.a||pr.w)>maxWidth&&x>0){line++;x=0;}
-  items.push({g,x,line});x+=g.a||pr.w;i+=len;}
+  items.push({g,x,line});base={x,line};x+=g.a||pr.w;i+=len;}
  return items;}
 
 /* ---------- starter files ---------- */
