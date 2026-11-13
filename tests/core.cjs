@@ -35,4 +35,6 @@ assert.throws(()=>Core.normalize({w:8,h:16,glyphs:[{c:'a',p:'0'}]}),/ไม่�
  assert.strictEqual(Core.autoSpacing(pr,{c:'ก',a:8,p:px.join('')},1).a,5,'right edge col 3 + 1 + gap 1');assert.strictEqual(Core.autoSpacing(pr,{c:'ก',a:8,p:px.join('')},0).a,4);
  assert.strictEqual(Core.autoSpacing(pr,{c:'ั',a:0,p:px.join('')},1).changed,false,'marks keep their advance');assert.strictEqual(Core.autoSpacing(pr,{c:' ',a:4,p:'0'.repeat(128)},1).changed,false,'empty glyphs keep theirs');
  assert.deepStrictEqual([...Core.widthsBank({glyphs:[{a:7},{a:0},{a:300}]})],[7,0,255]);}
+{const pr=Core.newProject({console:'gba',w:8,h:16,bpp:4,charset:['ก','ิ','้','า']});pr.glyphs.forEach(g=>{g.a=8;});
+ const it=Core.layoutText(pr,'กิ้า');assert.deepStrictEqual(it.map(i=>i.x),[0,0,0,8],'vowel and tone mark overlay the consonant, next letter follows at +8');}
 console.log('fontlab core ok',n+' roundtrips');

@@ -76,10 +76,12 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur),g=f.glyphs.find(x=>x.c==='ก');g.p='0'.repeat(f.w*6)+'0111'+'0'.repeat(f.w-4)+'0'.repeat(f.w*(f.h-7));g.a=f.w;});
  const adv=()=>page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);return f.glyphs.find(x=>x.c==='ก').a;});
  await page.click('[data-act=spacing]');await page.click('#sp-scope [data-s=all]');await page.click('#sp-go');assert.ok(await adv()<8,'auto spacing tightened the advance');await page.click('#u-undo');assert.strictEqual(await adv(),8,'one undo restores spacing');
- /* built-in is read only, duplicate to edit */
- await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-sword-shield-th]');
- await page.click('#edit');assert.ok(await page.locator('.toast.on').count(),'read-only toast');
- await page.click('[data-act=dup-edit]');await page.waitForFunction(()=>!FontLabApp.S.fonts.get(FontLabApp.S.cur).builtin);
+ /* starter fonts are ordinary: editable, deletable, restorable; a copy is made through the card menu */
+ await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-sword-shield-th]');await page.waitForSelector('#edit');
+ assert.strictEqual(await page.locator('[data-act=dup-edit]').count(),0,'no read-only banner');assert.ok(await page.locator('#u-save').count(),'save button on a starter font');
+ await page.click('.tab[data-tab=library]');await page.locator('[data-more=builtin-seaglass-th]').click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
+ await page.waitForFunction(()=>document.querySelectorAll('.card').length===4,null,{timeout:5000});await page.click('[data-act=restore-seeds]');await page.waitForFunction(()=>document.querySelectorAll('.card').length===5,null,{timeout:5000});
+ await page.locator('[data-more=builtin-sword-shield-th]').click();await page.click('[data-act=dup]');await page.waitForFunction(()=>FontLabApp.S.fonts.size===6);
  /* persistence */
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');assert.strictEqual(await page.locator('.card').count(),6,'user fonts persisted');
  /* cloud: automatic, no login, no cloud tab */
@@ -91,7 +93,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  assert.ok(![...vault().values()].some(r=>r.font_id.startsWith('builtin')),'built-ins are not uploaded');
  const row=[...vault().values()][0];assert.ok(row.data.glyphs&&row.width&&row.glyph_count);
  /* editing saves to the cloud by itself */
- await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ในตัว"))').first().click();await page.waitForSelector('#edit');
+ await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ตั้งต้น"))').first().click();await page.waitForSelector('#edit');
  const b3=await page.locator('#edit').boundingBox();await page.mouse.click(b3.x+b3.width/2,b3.y+b3.height/2);
  await page.waitForFunction(()=>document.querySelector('.cdot.ok'));await page.waitForTimeout(300);
  const t0=Math.max(...[...vault().values()].map(r=>Date.parse(r.updated_at)));assert.ok(Date.now()-t0<15000,'edit uploaded');
@@ -101,10 +103,10 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  const ctx2=await browser.newContext({viewport:{width:390,height:844}});await ctx2.addInitScript(()=>{window.FontLabSyncDelay=50;});await ctx2.route('https://*.supabase.co/**',handler);const page2=await ctx2.newPage();page2.on('pageerror',e=>errors.push(e.message));await page2.goto(base);await page2.waitForSelector('.card');
  assert.notStrictEqual(await page2.evaluate(()=>localStorage.getItem('fontlab.code.v2')),code);
  await page2.click('#page-library [data-act=cloud]');await page2.fill('#cc-in',code);await page2.click('#cc-use');
- await page2.waitForFunction(()=>[...document.querySelectorAll('.card')].filter(c=>!/ในตัว/.test(c.innerText)).length===2,null,{timeout:8000});
+ await page2.waitForFunction(()=>[...document.querySelectorAll('.card')].filter(c=>!/ตั้งต้น/.test(c.innerText)).length===2,null,{timeout:8000});
  assert.strictEqual(await page2.locator('.card').count(),6,'fonts arrived on the other device');await ctx2.close();
  /* delete -> removed from cloud */
- await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ในตัว")) .more').first().click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
+ await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ตั้งต้น")) .more').first().click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
  await page.waitForFunction(()=>document.querySelector('.cdot.ok'));await page.waitForTimeout(400);
  assert.strictEqual(vault().size,1,'deleted font removed from cloud');
  await page.click('#page-library [data-act=cloud]');await page.fill('#cc-in','xyz');await page.click('#cc-use');assert.ok(await page.locator('.toast.on').count(),'bad code rejected');await page.keyboard.press('Escape');
