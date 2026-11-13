@@ -1,9 +1,9 @@
 @font-face{font-family:Prompt;src:url('../fonts/Prompt-Regular.ttf') format('truetype');font-display:swap}
-:root{--bg:#fff;--card:#f2f2f7;--card2:#e9e9ee;--accent:#1c1c1e;--on-accent:#fff;--seg-on:#fff;--label:#000;--label2:rgba(60,60,67,.62);--label3:rgba(60,60,67,.3);--sep:rgba(60,60,67,.18);--fill:rgba(120,120,128,.12);--fill2:rgba(120,120,128,.2);
+:root{--inset:#fff;--bg:#fff;--card:#f2f2f7;--card2:#e9e9ee;--accent:#1c1c1e;--on-accent:#fff;--seg-on:#fff;--label:#000;--label2:rgba(60,60,67,.62);--label3:rgba(60,60,67,.3);--sep:rgba(60,60,67,.18);--fill:rgba(120,120,128,.12);--fill2:rgba(120,120,128,.2);
  --green:#34c759;--red:#ff3b30;--orange:#ff9500;--purple:#af52de;--bar:rgba(255,255,255,.82);--shadow:none;--menu:rgba(250,250,252,.94);--tabh:50px;--side:248px;
  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI','Noto Sans Thai','Sarabun',Prompt,system-ui,sans-serif;color-scheme:light}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#000;--card:#1c1c1e;--card2:#2c2c2e;--accent:#f5f5f7;--on-accent:#000;--seg-on:#636366;--label:#fff;--label2:rgba(235,235,245,.6);--label3:rgba(235,235,245,.3);--sep:rgba(84,84,88,.65);--fill:rgba(120,120,128,.24);--fill2:rgba(120,120,128,.36);--green:#30d158;--red:#ff453a;--orange:#ff9f0a;--purple:#bf5af2;--bar:rgba(22,22,24,.78);--shadow:none;--menu:rgba(44,44,46,.94);color-scheme:dark}}
-:root[data-theme=dark]{--bg:#000;--card:#1c1c1e;--card2:#2c2c2e;--accent:#f5f5f7;--on-accent:#000;--seg-on:#636366;--label:#fff;--label2:rgba(235,235,245,.6);--label3:rgba(235,235,245,.3);--sep:rgba(84,84,88,.65);--fill:rgba(120,120,128,.24);--fill2:rgba(120,120,128,.36);--green:#30d158;--red:#ff453a;--orange:#ff9f0a;--purple:#bf5af2;--bar:rgba(22,22,24,.78);--shadow:none;--menu:rgba(44,44,46,.94);color-scheme:dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--inset:#2c2c2e;--bg:#000;--card:#1c1c1e;--card2:#2c2c2e;--accent:#f5f5f7;--on-accent:#000;--seg-on:#636366;--label:#fff;--label2:rgba(235,235,245,.6);--label3:rgba(235,235,245,.3);--sep:rgba(84,84,88,.65);--fill:rgba(120,120,128,.24);--fill2:rgba(120,120,128,.36);--green:#30d158;--red:#ff453a;--orange:#ff9f0a;--purple:#bf5af2;--bar:rgba(22,22,24,.78);--shadow:none;--menu:rgba(44,44,46,.94);color-scheme:dark}}
+:root[data-theme=dark]{--inset:#2c2c2e;--bg:#000;--card:#1c1c1e;--card2:#2c2c2e;--accent:#f5f5f7;--on-accent:#000;--seg-on:#636366;--label:#fff;--label2:rgba(235,235,245,.6);--label3:rgba(235,235,245,.3);--sep:rgba(84,84,88,.65);--fill:rgba(120,120,128,.24);--fill2:rgba(120,120,128,.36);--green:#30d158;--red:#ff453a;--orange:#ff9f0a;--purple:#bf5af2;--bar:rgba(22,22,24,.78);--shadow:none;--menu:rgba(44,44,46,.94);color-scheme:dark}
 :root[data-theme=light]{color-scheme:light}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--label);font:17px/1.35 var(--font);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
@@ -184,3 +184,8 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .tools{gap:6px}.tools .seg button{min-width:40px;padding:0 6px}.tools .tgl{min-width:36px;padding:0}
 
 .tools{gap:4px}.tools .seg button{min-width:38px}.tools .tgl{min-width:34px}
+
+/* iOS inset list inside a card */
+.group.inset{margin-left:0;margin-right:0;background:var(--inset)}
+.row .ico{color:var(--label2);width:1.35em;height:1.35em}
+.group.inset .row{min-height:54px}
