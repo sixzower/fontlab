@@ -56,6 +56,8 @@ const CONSOLES=[
  {id:'custom',name:'เครื่องอื่น ๆ / กำหนดเอง',short:'ANY',maker:'ทั่วไป',year:0,formats:{1:'p1',2:'gb2',4:'gba4',8:'lin8'},bpp:2,cell:[8, 16],cells:[[8, 8], [8, 16], [12, 12], [16, 16], [16, 24], [24, 24], [32, 32]],colors:['#f2f2f7', '#1c1c1e', '#8e8e93', '#ff3b30'],tint:'#8e8e93',icon:'console',group:'other',kind:'tile',notes:'ใช้กับเอมูเลเตอร์หรือเครื่องที่ไม่อยู่ในรายการ ส่งออก PNG sheet ได้เสมอ และเลือกรูปแบบไบนารีเองได้'}
 ];
 const GROUPS=[['handheld','เครื่องเล่นพกพา'],['home','เครื่องเล่นบ้านและอาร์เคด'],['modern','เครื่องยุค 3D (ฟอนต์เป็นเท็กซ์เจอร์)'],['other','อื่น ๆ']];
+const SCREENS={gb:[160,144],gbc:[160,144],nes:[256,240],snes:[256,224],sms:[256,192],gg:[160,144],md:[320,224],mcd:[320,224],gba:[240,160],nds:[256,192],ps1:[320,240],psp:[480,272],sat:[320,224],n64:[320,240],pce:[256,224],a2600:[160,192],arc:[320,224],ngp:[160,152],ws:[224,144],n3ds:[400,240],ps2:[640,448],gcwii:[640,480],switch:[1280,720],dc:[640,480],custom:[256,192]};
+CONSOLES.forEach(c=>{c.screen=SCREENS[c.id]||[256,192];});
 const consoleOf=id=>CONSOLES.find(c=>c.id===id)||CONSOLES[CONSOLES.length-1];
 const formatFor=p=>{const c=consoleOf(p.console);const key=c.formats[p.bpp]||c.formats[c.bpp]||Object.values(c.formats)[0];return {key,...FORMATS[key]};};
 const maxIndex=p=>Math.min(3,(1<<p.bpp)-1);

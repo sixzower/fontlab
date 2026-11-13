@@ -204,3 +204,7 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .nav .back+.nav-title{padding-left:0}
 /* wide screens: the glyph column follows while scrolling */
 @media(min-width:900px){.studio>.panel:last-child{position:sticky;top:60px;max-height:calc(100dvh - 76px);overflow:auto}.glyphs{max-height:calc(100dvh - 430px);min-height:220px}}
+
+.gl-more{grid-column:1/-1;text-align:center;color:var(--label2);font-size:13px;padding:10px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#edit:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 28%,transparent);outline-offset:3px}
