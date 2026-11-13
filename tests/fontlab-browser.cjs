@@ -24,6 +24,18 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.waitForSelector('.card');
  assert.strictEqual(await page.locator('.card').count(),4,'4 built-in fonts');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/library.png':undefined,...(process.env.SHOTS?{}:{type:'png'})});
+ /* theme toggle + iOS menu */
+ const bg=()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor);
+ assert.strictEqual(await bg(),'rgb(255, 255, 255)','light mode is white');
+ await page.click('#page-library [data-act=theme]');assert.strictEqual(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');assert.strictEqual(await bg(),'rgb(0, 0, 0)');
+ await page.reload();await page.waitForSelector('.card');assert.strictEqual(await bg(),'rgb(0, 0, 0)','theme remembered');
+ await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/dark.png':undefined});
+ await page.click('#page-library [data-act=theme]');assert.strictEqual(await bg(),'rgb(255, 255, 255)');
+ await page.click('#page-library [data-act=new]');await page.click('.sheet .sel >> nth=0');assert.ok(await page.locator('.menu [role=option]').count()>=10,'menu lists consoles');
+ await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/menu.png':undefined});
+ await page.click('.menu [role=option]:has-text("Super Nintendo")');assert.strictEqual(await page.locator('#nf-con').inputValue(),'snes');assert.ok(/Super Nintendo/.test(await page.locator('.sheet .sel >> nth=0').innerText()));
+ assert.deepStrictEqual(await page.locator('#nf-bpp option').allInnerTexts(),['2 บิต','4 บิต'],'dependent select refreshed');
+ await page.keyboard.press('Escape');await page.keyboard.press('Escape');assert.strictEqual(await page.locator('.sheet').count(),0);
  /* console starters */
  await page.click('.tab[data-tab=consoles]');assert.strictEqual(await page.locator('[data-console]').count(),10);
  await page.click('[data-console=gb]');

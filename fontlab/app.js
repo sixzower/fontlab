@@ -4,6 +4,7 @@
 const Core=FontLabCore,$=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ICONS={
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',moon:'<path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/>',
  library:'<rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/>',
  consoles:'<rect x="2.5" y="7" width="19" height="10.5" rx="5"/><path d="M7 10.5v3.5M5.25 12.25h3.5"/><circle cx="15.5" cy="11.3" r=".6"/><circle cx="17.8" cy="13.3" r=".6"/>',
  studio:'<path d="M4 20l1-4.2L16.6 4.2a2 2 0 012.8 0l.4.4a2 2 0 010 2.8L8.2 19z"/><path d="M14.5 6.3l3.2 3.2"/>',
@@ -51,10 +52,27 @@ const layer=$('#layer');let closeSheetFn=null,lastFocus=null;
 function sheet(html,bind){closeSheet();lastFocus=document.activeElement;const b=document.createElement('div');b.className='backdrop';b.innerHTML='<div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>'+html+'</div>';
  layer.append(b);const s=$('.sheet',b);b.addEventListener('mousedown',e=>{if(e.target===b)closeSheet();});
  closeSheetFn=()=>{b.remove();closeSheetFn=null;lastFocus?.focus?.();};s.addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeSheet();});
- bind?.(s);(s.querySelector('[autofocus]')||s.querySelector('button,input,select'))?.focus();return s;}
+ enhanceSelects(s);bind?.(s);(s.querySelector('[autofocus]')||s.querySelector('button,input,select'))?.focus();return s;}
 function closeSheet(){closeSheetFn?.();}
 const action=(label,act,cls='')=>'<button class="row '+cls+'" data-act="'+act+'">'+label+'</button>';
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
+
+/* iOS-style pop-up menu that replaces native <select> (the real select stays in the DOM as the value holder) */
+let openMenu=null;function closeMenu(){openMenu?.();openMenu=null;}
+function enhanceSelects(root){for(const sel of $$('select.input',root)){if(sel._enh)continue;sel._enh=true;sel.classList.remove('input');sel.classList.add('native');sel.tabIndex=-1;sel.setAttribute('aria-hidden','true');
+  const btn=document.createElement('button');btn.type='button';btn.className='sel';btn.setAttribute('aria-haspopup','listbox');const lab=sel.labels?.[0];if(lab&&lab.id!==undefined){lab.removeAttribute('for');}
+  const text=document.createElement('span');btn.append(text);btn.insertAdjacentHTML('beforeend',ic('chev'));sel.after(btn);
+  if(lab){btn.setAttribute('aria-label',lab.textContent+': ');}
+  const refresh=()=>{text.textContent=sel.selectedOptions[0]?.textContent||'';};refresh();sel.addEventListener('change',refresh);new MutationObserver(refresh).observe(sel,{childList:true});
+  btn.onclick=e=>{e.stopPropagation();if(btn.getAttribute('aria-expanded')==='true')return closeMenu();closeMenu();btn.setAttribute('aria-expanded','true');
+   const m=document.createElement('div');m.className='menu';m.setAttribute('role','listbox');
+   for(const o of sel.options){const it=document.createElement('button');it.type='button';it.setAttribute('role','option');it.setAttribute('aria-checked',o.value===sel.value);it.innerHTML='<span></span>'+ic('check');it.firstChild.textContent=o.textContent;it.onclick=ev=>{ev.stopPropagation();sel.value=o.value;sel.dispatchEvent(new Event('change',{bubbles:true}));closeMenu();btn.focus();};m.append(it);}
+   document.body.append(m);const r=btn.getBoundingClientRect(),mh=m.offsetHeight;let top=r.bottom+6;if(top+mh>innerHeight-12)top=Math.max(12,r.top-mh-6);m.style.width=Math.max(r.width,200)+'px';m.style.left=Math.min(r.left,innerWidth-m.offsetWidth-12)+'px';m.style.top=top+'px';
+   (m.querySelector('[aria-checked=true]')||m.firstChild)?.scrollIntoView({block:'nearest'});m.querySelector('[aria-checked=true]')?.focus();
+   m.addEventListener('keydown',ev=>{const b=[...m.children],i=b.indexOf(document.activeElement);if(ev.key==='ArrowDown'){ev.preventDefault();b[(i+1)%b.length].focus();}if(ev.key==='ArrowUp'){ev.preventDefault();b[(i-1+b.length)%b.length].focus();}});
+   const off=ev=>{if(!m.contains(ev.target))closeMenu();};setTimeout(()=>document.addEventListener('pointerdown',off),0);
+   openMenu=()=>{m.remove();btn.setAttribute('aria-expanded','false');document.removeEventListener('pointerdown',off);};};}}
+addEventListener('resize',closeMenu);document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu();},true);
 
 /* ---------- persistence ---------- */
 const saveTimers=new Map();let syncTimer;
@@ -73,7 +91,15 @@ const TABS=[['library','คลังฟอนต์'],['consoles','เครื�
 function renderTabs(){$('#tabs').innerHTML='<div class="brand"><img src="logo.svg" alt="" width="36" height="36">FontLab</div>'+TABS.map(([id,l])=>'<button class="tab" data-tab="'+id+'"'+(S.tab===id?' aria-current="page"':'')+'>'+ic(id)+'<span>'+l+'</span></button>').join('');}
 function go(tab,{push=true}={}){S.tab=tab;$$('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+tab));renderTabs();if(push)history.replaceState(null,'','#'+tab);scrollTo(0,0);
  if(tab==='library')renderLibrary();if(tab==='consoles')renderConsoles();if(tab==='studio')mountStudio();if(tab==='cloud')renderCloud();}
-const nav=(title,actions='')=>'<div class="nav"><span class="nav-title">'+esc(title)+'</span><div class="nav-actions">'+actions+'</div></div>';
+/* theme: light / dark, remembered; default follows the system */
+const themeKey='fontlab.theme';
+const isDark=()=>document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+function applyTheme(t,save){const r=document.documentElement;if(t)r.dataset.theme=t;else delete r.dataset.theme;if(save)try{t?localStorage.setItem(themeKey,t):localStorage.removeItem(themeKey);}catch{}
+ const dark=isDark();for(const m of $$('meta[name=theme-color]'))m.content=dark?'#000000':'#ffffff';$$('[data-act=theme]').forEach(b=>{b.innerHTML=ic(dark?'sun':'moon');b.setAttribute('aria-label',dark?'เปลี่ยนเป็นโหมดกลางวัน':'เปลี่ยนเป็นโหมดกลางคืน');b.title=b.getAttribute('aria-label');});}
+try{const t=localStorage.getItem(themeKey);if(t==='dark'||t==='light')document.documentElement.dataset.theme=t;}catch{}
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>applyTheme(document.documentElement.dataset.theme,false));
+const themeBtn=()=>'<button class="icon-btn" data-act="theme" aria-label="เปลี่ยนโหมดสี">'+ic(isDark()?'sun':'moon')+'</button>';
+const nav=(title,actions='')=>'<div class="nav"><span class="nav-title">'+esc(title)+'</span><div class="nav-actions">'+actions+themeBtn()+'</div></div>';
 addEventListener('scroll',()=>$$('.nav').forEach(n=>n.classList.toggle('scrolled',scrollY>48)),{passive:true});
 
 /* ---------- library ---------- */
@@ -196,7 +222,7 @@ function drawEditor(buf){const f=S.fonts.get(S.cur),g=f.glyphs[S.idx],{ctx,scale
  for(let i=0;i<w*f.h;i++){const v=buf?buf[i]:code(g.p,i),x=i%w,y=(i-x)/w;if(!v&&(x+y)%2){ctx.fillStyle='rgba(128,128,128,.07)';ctx.fillRect(x*sc,y*sc,sc,sc);}if(v){ctx.fillStyle=colors[Math.min(v,3)];ctx.fillRect(x*sc,y*sc,sc,sc);}}
  if(S.grid){ctx.lineWidth=1;for(let x=1;x<w;x++){ctx.strokeStyle=x%8?'rgba(128,128,128,.25)':'rgba(128,128,128,.6)';ctx.beginPath();ctx.moveTo(x*sc+.5,0);ctx.lineTo(x*sc+.5,f.h*sc);ctx.stroke();}
   for(let y=1;y<f.h;y++){ctx.strokeStyle=y%8?'rgba(128,128,128,.25)':'rgba(128,128,128,.6)';ctx.beginPath();ctx.moveTo(0,y*sc+.5);ctx.lineTo(w*sc,y*sc+.5);ctx.stroke();}}
- ctx.strokeStyle='#0a84ff';ctx.setLineDash([4,3]);ctx.lineWidth=2;const ax=g.a*sc;ctx.beginPath();ctx.moveTo(ax,0);ctx.lineTo(ax,f.h*sc);ctx.stroke();ctx.setLineDash([]);}
+ ctx.strokeStyle='#ff9f0a';ctx.setLineDash([4,3]);ctx.lineWidth=2;const ax=g.a*sc;ctx.beginPath();ctx.moveTo(ax,0);ctx.lineTo(ax,f.h*sc);ctx.stroke();ctx.setLineDash([]);}
 function drawPreview(){const f=S.fonts.get(S.cur),box=$('#s-prev-box');if(!f||!box)return;drawText($('#s-prev'),f,$('#s-text').value,3,Math.max(120,box.clientWidth-16||300));}
 function updateHistoryButtons(){const u=$('#u-undo'),r=$('#u-redo');if(u)u.disabled=!S.undo.length;if(r)r.disabled=!S.redo.length;}
 function guardEdit(){if(editable())return true;toast('ฟอนต์ในตัวแก้ไขไม่ได้ · กด “ทำสำเนาเพื่อแก้ไข”');return false;}
@@ -295,6 +321,7 @@ document.addEventListener('click',e=>{const t=e.target;
  const op=t.closest('[data-op]');if(op)return transform(op.dataset.op);
  const gl=t.closest('.gl');if(gl)return selectGlyph(+gl.dataset.i);
  const a=t.closest('[data-act]')?.dataset.act;if(!a||t.closest('.sheet'))return;
+ if(a==='theme'){applyTheme(isDark()?'light':'dark',true);return;}
  if(a==='new')newFontSheet();else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
  else if(a==='add-glyph')addGlyphSheet();else if(a==='grid'){S.grid=!S.grid;drawEditor();}
  else if(a==='dup-edit'){const f=S.fonts.get(S.cur),d=duplicate(f);addFont(d).then(()=>{openStudio(d.id);toast('ทำสำเนาแล้ว แก้ไขได้เลย');});}
@@ -316,6 +343,7 @@ addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(TABS.some(x
  for(const b of FontLabBuiltins)S.fonts.set(b.id,b);
  await Store.init();
  try{for(const raw of await Store.all()){try{const f=Core.normalize(raw);S.fonts.set(f.id,f);}catch{}}}catch{}
+ applyTheme(document.documentElement.dataset.theme,false);
  const start=location.hash.slice(1);go(TABS.some(x=>x[0]===start)?start:'library',{push:false});
  if(!Store.persistent())toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บฟอนต์ถาวร · ส่งออกไฟล์ไว้เสมอ');
  if(FontLabCloud.user&&S.auto)syncNow(true);
