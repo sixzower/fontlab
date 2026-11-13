@@ -1,5 +1,5 @@
 FontLab starter — SMS · ไทยพื้นฐาน
-เครื่อง: Master System / Game Gear
+เครื่อง: Master System
 ขนาดช่องอักษร: 8×16 px
 รูปแบบไบนารี: 4bpp planar (Master System / Game Gear) (4 bpp)
 ลำดับไทล์ต่อ 1 ตัวอักษร: ซ้าย→ขวา แล้วบน→ล่าง (ไทล์ 8×8 ละ 32 ไบต์)

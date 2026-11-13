@@ -5,6 +5,7 @@ const Core=FontLabCore,$=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ICONS={
  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',moon:'<path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/>',
+ ruler:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',warn:'<path d="M12 3.5l9.5 17h-19z"/><path d="M12 10v5M12 17.8v.2"/>',
  library:'<rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/>',
  consoles:'<rect x="2.5" y="7" width="19" height="10.5" rx="5"/><path d="M7 10.5v3.5M5.25 12.25h3.5"/><circle cx="15.5" cy="11.3" r=".6"/><circle cx="17.8" cy="13.3" r=".6"/>',
  studio:'<path d="M4 20l1-4.2L16.6 4.2a2 2 0 012.8 0l.4.4a2 2 0 010 2.8L8.2 19z"/><path d="M14.5 6.3l3.2 3.2"/>',
@@ -29,7 +30,7 @@ const Store=(()=>{let db=null;const mem=new Map();
   put:async f=>{mem.set(f.id,f);if(db)await tx('readwrite',s=>s.put(f));},del:async id=>{mem.delete(id);if(db)await tx('readwrite',s=>s.delete(id));},persistent:()=>!!db};})();
 
 /* ---------- state ---------- */
-const S={fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloudBusy:false,cloudMsg:'',lastSync:null,auto:(()=>{try{return localStorage.getItem('fontlab.auto')!=='no';}catch{return true;}})()};
+const S={guides:true,fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloudBusy:false,cloudMsg:'',lastSync:null,auto:(()=>{try{return localStorage.getItem('fontlab.auto')!=='no';}catch{return true;}})()};
 const userFonts=()=>[...S.fonts.values()].filter(f=>!f.builtin);
 const consoleColor=id=>Core.consoleOf(id).tint;
 let toastTimer;function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),2600);}
@@ -133,18 +134,36 @@ function newFontSheet(cid='gba',kind='thai-base'){
   +'<div class="field"><label for="nf-con">เครื่อง</label><select id="nf-con" class="input">'+Core.CONSOLES.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('')+'</select></div>'
   +'<div class="grid2"><div class="field"><label for="nf-size">ช่องอักษร (px)</label><select id="nf-size" class="input"></select></div><div class="field"><label for="nf-bpp">ความลึกสี</label><select id="nf-bpp" class="input"></select></div></div>'
   +'<div class="field"><span>เริ่มจาก</span><div class="seg" role="group"><button data-kind="thai-base" aria-pressed="true">ไทยพื้นฐาน</button><button data-kind="blank" aria-pressed="false">ฟอนต์เปล่า</button></div></div>'
-  +'<button class="btn block" id="nf-go" style="margin-top:8px">สร้างและเปิดสตูดิโอ</button>',s=>{
+  +'<p class="foot" id="nf-note" style="margin:0 4px 6px"></p><button class="btn block" id="nf-go" style="margin-top:8px">สร้างและเปิดสตูดิโอ</button>',s=>{
   const con=$('#nf-con',s),size=$('#nf-size',s),bpp=$('#nf-bpp',s);con.value=cid;
   const fill=()=>{const c=Core.consoleOf(con.value);size.innerHTML=c.cells.map(x=>'<option value="'+x+'"'+(x+''===c.cell+''?' selected':'')+'>'+sizeLabel(x)+'</option>').join('');bpp.innerHTML=Object.keys(c.formats).map(b=>'<option value="'+b+'"'+(+b===c.bpp?' selected':'')+'>'+b+' บิต</option>').join('');};
-  fill();con.onchange=fill;$$('[data-kind]',s).forEach(b=>{b.setAttribute('aria-pressed',b.dataset.kind===kind);b.onclick=()=>{kind=b.dataset.kind;$$('[data-kind]',s).forEach(x=>x.setAttribute('aria-pressed',x===b));};});
+  const note=()=>{const [w,h]=size.value.split(',').map(Number),c=Core.consoleOf(con.value);$('#nf-note',s).textContent=Core.tooShort(h)?'⚠ ความสูง '+h+' px ไม่พอสำหรับสระบน/ล่างพร้อมวรรณยุกต์ แนะนำสูง 16 px ขึ้นไป':(c.kind==='tile'&&w%8===0&&h%8===0?'ช่อง '+w+'×'+h+' = '+(w/8)*(h/8)+' ไทล์ต่อตัวอักษร · ':'')+(c.kind==='tile'?'':'เครื่องนี้ใช้เท็กซ์เจอร์/บิตแมป ส่งออก PNG เป็นหลัก · ')+'ดูขอบเขตการวาดได้ในสตูดิโอ';};fill();note();con.onchange=()=>{fill();note();};size.onchange=note;$$('[data-kind]',s).forEach(b=>{b.setAttribute('aria-pressed',b.dataset.kind===kind);b.onclick=()=>{kind=b.dataset.kind;$$('[data-kind]',s).forEach(x=>x.setAttribute('aria-pressed',x===b));};});
   $('#nf-go',s).onclick=async()=>{const [w,h]=size.value.split(',').map(Number),base=FontLabBuiltins[0];
    const p=Core.convertProject(Core.starter(con.value,kind,base),{console:con.value,w,h,bpp:+bpp.value});p.name=($('#nf-name',s).value.trim()||p.name).slice(0,100);p.id=Core.uid();closeSheet();await addFont(p,{open:true});toast('สร้างฟอนต์แล้ว');};});}
 
 /* ---------- consoles ---------- */
+const CICON={
+ 'handheld-v':'<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><rect x="9" y="5" width="6" height="6" rx=".8"/><path d="M9.5 16h3M11 14.5v3"/><circle cx="15" cy="16" r=".9"/>',
+ 'handheld-w':'<rect x="2" y="6.5" width="20" height="11" rx="3.2"/><rect x="8.2" y="8.6" width="7.6" height="6.8" rx=".8"/><path d="M4 12h3M5.5 10.5v3"/><circle cx="18.6" cy="11.2" r=".9"/><circle cx="17.2" cy="14" r=".9"/>',
+ dual:'<rect x="6" y="2.5" width="12" height="8" rx="1.6"/><rect x="6" y="13" width="12" height="8.5" rx="1.6"/><path d="M3.5 11.8h17"/>',
+ pad:'<rect x="2" y="7.5" width="20" height="10" rx="4.5"/><path d="M6 12.5h4M8 10.5v4"/><circle cx="15.5" cy="11.6" r=".95"/><circle cx="18.2" cy="13.6" r=".95"/>',
+ console:'<rect x="2.5" y="8" width="19" height="9" rx="2"/><path d="M6 12.5h8M17 11.5v2"/>',
+ tower:'<rect x="8" y="2.5" width="8" height="19" rx="1.8"/><path d="M10.5 6h3M10.5 9h3"/><circle cx="12" cy="17.5" r=".9"/>',
+ switch:'<rect x="6" y="3.5" width="12" height="17" rx="2.4"/><rect x="2.5" y="6" width="3" height="12" rx="1.5"/><rect x="18.5" y="6" width="3" height="12" rx="1.5"/>',
+ disc:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6"/>',
+ card:'<rect x="6" y="3" width="12" height="18" rx="1.6"/><rect x="8.5" y="5.5" width="7" height="6.5" rx=".8"/><path d="M9 16.5h6"/>',
+ stick:'<rect x="3.5" y="15" width="17" height="5.5" rx="1.6"/><path d="M12 15V8.5"/><circle cx="12" cy="6.3" r="2.5"/>',
+ arcade:'<rect x="5.5" y="2.5" width="13" height="19" rx="2"/><rect x="8" y="5" width="8" height="6" rx=".8"/><path d="M12 17v-3"/><circle cx="12" cy="13" r="1.2"/>'};
+const kindLabel=c=>c.kind==='tile'?'ไทล์ '+Object.keys(c.formats).join('/')+' บิต':c.kind==='texture'?'เท็กซ์เจอร์ · PNG':'บิตแมปทั่วไป · PNG';
+const consoleIcon=c=>'<span class="cico" style="--t:'+c.tint+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+CICON[c.icon]+'</svg><b>'+esc(c.short)+'</b></span>';
+function zoneRules(w,h){const Z=Core.zonesFor(h),r=k=>Core.ALLOWED[k].map((x,i)=>Math.round(x*(h-1)/15)),a=k=>{const q=r(k);return q[0]+'–'+Math.min(h-1,q[1]);};
+ if(Core.tooShort(h))return '<p class="foot" style="margin:8px 4px">⚠ ความสูง '+h+' px ไม่พอสำหรับสระบน/ล่างพร้อมวรรณยุกต์ แนะนำช่องสูง 16 px ขึ้นไป (เช่น 8×16 = 2 ไทล์ซ้อนกัน)</p>';
+ return '<div class="group" style="margin:0 0 8px">'+Z.map(z=>'<div class="row"><span class="zdot" style="background:'+z.color+'"></span><span class="grow">'+esc(z.name)+'<small>แถว '+z.rows[0]+'–'+z.rows[1]+'</small></span></div>').join('')+'</div>'
+ +'<ul class="rules"><li><b>วรรณยุกต์/การันต์</b> วาดในแถว '+a('tone')+' และอย่าลงมาถึงหัวพยัญชนะ</li><li><b>สระบน</b> (ั ิ ี ึ ื ็ ํ) แถว '+a('upper')+'</li><li><b>พยัญชนะ</b> ลำตัวแถว '+Z[1].rows[0]+'–'+Z[1].rows[1]+' หัวสูง (ป ฝ ฟ) ขึ้นได้ถึงแถว '+a('cons').split('–')[0]+' หางต่ำ (ฎ ฏ ฤ) ลงได้ถึงแถว '+a('cons').split('–')[1]+'</li><li><b>สระล่าง</b> (ุ ู ฺ) แถว '+a('lower')+'</li><li><b>สระหน้า/ตัวเลข</b> แถว '+a('lead')+'</li><li><b>ด้านกว้าง</b> ภาพต้องไม่เกินระยะอักษร (เส้นประสีส้ม) ไม่งั้นตัวอักษรติดกัน</li><li><b>อักษรผสม</b> เช่น กิ ก่ ก้ ให้วาดพยัญชนะ+สระ+วรรณยุกต์ครบในช่องเดียว โดยสระอยู่เหนือหัวพยัญชนะและวรรณยุกต์อยู่เหนือสระ</li>'+(w===8&&h===16?'<li><b>8×16 = 2 ไทล์</b> ไทล์บนคือแถว 0–7 ไทล์ล่างคือแถว 8–15</li>':'')+'</ul>';}
 function renderConsoles(){
- $('#page-consoles').innerHTML=nav('เครื่องเกม')+'<div class="large"><h1>เครื่องเกม</h1><p>แต่ละเครื่องมีรูปแบบไทล์และชุดสารตั้งต้นของตัวเอง</p></div>'
-  +'<div class="group">'+Core.CONSOLES.map(c=>'<button class="row" data-console="'+c.id+'"><span class="badge" style="background:'+c.tint+'">'+c.short+'</span><span class="grow">'+esc(c.name)+'<small>'+esc(c.maker)+(c.year?' · '+c.year:'')+' · ช่อง '+c.cell.join('×')+' · '+Object.keys(c.formats).join('/')+' บิต</small></span>'+ic('chev','chev')+'</button>').join('')+'</div>'
-  +'<p class="foot">ทุกเครื่องส่งออกเป็น PNG sheet, ไฟล์ไบนารีไทล์ และ .fontlab.json ได้ พิกเซลมี 4 ดัชนีสี: โปร่ง · หมึก · เงา · เสริม</p>';}
+ $('#page-consoles').innerHTML=nav('เครื่องเกม')+'<div class="large"><h1>เครื่องเกม</h1><p>เลือกเครื่องเพื่อดูรูปแบบไทล์ ขอบเขตการวาด และชุดสารตั้งต้น</p></div>'
+  +Core.GROUPS.map(([g,label])=>{const list=Core.CONSOLES.filter(c=>c.group===g);return '<section class="cgroup" aria-label="'+esc(label)+'"><div class="cgroup-h"><h2>'+esc(label)+'</h2><span>'+list.length+' เครื่อง</span></div><div class="cgrid">'+list.map(c=>'<button class="ctile" data-console="'+c.id+'" aria-label="'+esc(c.name)+'">'+consoleIcon(c)+'<span class="cname">'+esc(c.name)+'</span><small>'+esc(kindLabel(c))+'</small></button>').join('')+'</div></section>';}).join('')
+  +'<p class="foot">ทุกเครื่องส่งออกเป็น PNG sheet, ไฟล์ไบนารี และ .fontlab.json ได้ พิกเซลมี 4 ดัชนีสี: โปร่ง · หมึก · เงา · เสริม</p>';}
 async function pngBytes(p,guide){const s=Core.renderSheet(p,{guide}),cv=document.createElement('canvas');cv.width=s.width;cv.height=s.height;cv.getContext('2d').putImageData(new ImageData(s.rgba,s.width,s.height),0,0);
  return new Uint8Array(await (await new Promise(r=>cv.toBlob(r,'image/png'))).arrayBuffer());}
 async function starterZip(cid){const enc=new TextEncoder(),files=[],base=FontLabBuiltins[0];
@@ -152,9 +171,9 @@ async function starterZip(cid){const enc=new TextEncoder(),files=[],base=FontLab
   files.push({name:n+'.fontlab.json',data:enc.encode(JSON.stringify(p))},{name:n+'-sheet.png',data:await pngBytes(p,kind==='blank')},{name:n+'.bin',data:Core.exportBank(p)},{name:n+'-README.txt',data:enc.encode(Core.readme(p))});}
  return Core.zip(files);}
 function consoleSheet(id){const c=Core.consoleOf(id),fmts=Object.entries(c.formats).map(([b,k])=>'<div class="row"><span class="grow">'+b+' บิต<small>'+esc(Core.FORMATS[k].name)+'</small></span></div>').join('');
- sheet('<div style="text-align:center"><span class="badge" style="background:'+c.tint+';height:34px;min-width:56px;font-size:14px">'+c.short+'</span></div><h2 style="margin-top:8px">'+esc(c.name)+'</h2><p class="sub">'+esc(c.notes)+'</p>'
+ sheet('<div style="display:flex;justify-content:center">'+consoleIcon(c)+'</div><h2 style="margin-top:8px">'+esc(c.name)+'</h2><p class="sub">'+esc(c.notes)+'</p>'
   +'<div class="group-title" style="margin-left:16px">รูปแบบไบนารี</div><div class="group" style="margin:0 0 12px">'+fmts+'<div class="row"><span class="grow">ช่องอักษรเริ่มต้น<small>'+c.cells.map(sizeLabel).join(' · ')+'</small></span></div></div>'
-  +'<div class="group-title" style="margin-left:16px">สารตั้งต้น</div><div class="actions">'+action('สร้างฟอนต์ไทยพื้นฐานสำหรับ '+c.short,'start-thai')+action('สร้างฟอนต์เปล่าสำหรับ '+c.short,'start-blank')+action('ดาวน์โหลดชุดไฟล์ (.zip)','zip')+'</div>'
+  +'<div class="group-title" style="margin-left:16px">ขอบเขตการวาดภาษาไทย (ช่อง '+c.cell.join('×')+')</div>'+zoneRules(c.cell[0],c.cell[1])+'<div class="group-title" style="margin-left:16px">สารตั้งต้น</div><div class="actions">'+action('สร้างฟอนต์ไทยพื้นฐานสำหรับ '+c.short,'start-thai')+action('สร้างฟอนต์เปล่าสำหรับ '+c.short,'start-blank')+action('ดาวน์โหลดชุดไฟล์ (.zip)','zip')+'</div>'
   +'<p class="foot" style="margin:0 8px 12px">ชุด .zip มี .fontlab.json, PNG sheet, ไฟล์ .bin ของเครื่องนี้ และ README ที่ระบุออฟเซ็ตของทุกตัวอักษร ทั้งแบบเปล่าและแบบไทยพื้นฐาน</p><button class="btn gray block" data-close>ปิด</button>',s=>{
   s.addEventListener('click',async e=>{const a=e.target.closest('[data-act]')?.dataset.act;if(!a)return;
    if(a==='zip'){try{download('fontlab-'+c.id+'-starter.zip',await starterZip(c.id),'application/zip');toast('ดาวน์โหลดชุดสารตั้งต้นแล้ว');}catch(err){toast('สร้างไฟล์ไม่สำเร็จ: '+err.message);}}
@@ -198,12 +217,12 @@ function mountStudio(){
   +'<div class="studio"><div style="display:grid;gap:12px;min-width:0">'
   +(ro?'<div class="banner">'+ic('lock')+'<span>ฟอนต์ในตัว เปิดดูได้อย่างเดียว</span><button class="btn small" data-act="dup-edit">ทำสำเนาเพื่อแก้ไข</button></div>':'')
   +'<div class="panel"><h2>วาด · <span id="s-glyph"></span></h2><div class="stage"><canvas id="edit" aria-label="กริดวาดพิกเซล"></canvas></div>'
-  +'<div class="tools"><div class="seg" role="group" aria-label="เครื่องมือ">'+[['pencil','ดินสอ'],['eraser','ยางลบ'],['fill','เทสี'],['pick','ดูดสี']].map(([t,l])=>'<button data-tool="'+t+'" aria-pressed="'+(S.tool===t)+'" aria-label="'+l+'" title="'+l+'">'+ic(t)+'</button>').join('')+'</div><button class="icon-btn" data-act="grid" aria-label="เส้นกริด" style="background:var(--fill);color:var(--label);border-radius:10px;height:36px;min-width:40px">'+ic('grid')+'</button></div>'
+  +'<div class="tools"><div class="seg" role="group" aria-label="เครื่องมือ">'+[['pencil','ดินสอ'],['eraser','ยางลบ'],['fill','เทสี'],['pick','ดูดสี']].map(([t,l])=>'<button data-tool="'+t+'" aria-pressed="'+(S.tool===t)+'" aria-label="'+l+'" title="'+l+'">'+ic(t)+'</button>').join('')+'</div><button class="icon-btn tgl" data-act="grid" aria-label="เส้นกริด" title="เส้นกริด">'+ic('grid')+'</button><button class="icon-btn tgl" data-act="guides" aria-label="ไกด์ภาษาไทย" title="ไกด์ภาษาไทย" aria-pressed="'+S.guides+'">'+ic('ruler')+'</button></div><div class="check" id="s-check" role="status"></div>'
   +'<div class="swatches" role="group" aria-label="สี">'+c.colors.slice(0,max+1).map((col,i)=>'<button class="swatch" data-color="'+i+'" aria-pressed="'+(S.color===i)+'" aria-label="สี '+i+' '+labels[i]+'" style="background:'+col+'"><span>'+labels[i]+'</span></button>').join('')+'</div>'
   +'<div class="opsrow">'+[['left','shift-l','เลื่อนซ้าย'],['right','shift-r','เลื่อนขวา'],['up','shift-u','เลื่อนขึ้น'],['down','shift-d','เลื่อนลง'],['fliph','flip-h','พลิกแนวนอน'],['flipv','flip-v','พลิกแนวตั้ง'],['copy','copy','คัดลอก'],['paste','paste','วาง'],['clear','clear','ล้างอักษร']].map(([i,a,l])=>'<button class="icon-btn" data-op="'+a+'" aria-label="'+l+'" title="'+l+'">'+ic(i)+'</button>').join('')+'</div>'
-  +'<div class="advance"><label for="s-adv" style="font-size:15px;color:var(--label2)">ระยะอักษร</label><input id="s-adv" type="range" min="0" max="'+f.w+'" aria-label="ระยะอักษร"><b id="s-advv" style="min-width:48px;text-align:right"></b></div></div>'
+  +'<div class="legend" id="s-legend">'+(Core.tooShort(f.h)?'':Core.zonesFor(f.h).map(z=>'<span><i style="background:'+z.color+'"></i>'+esc(z.name)+' · แถว '+z.rows[0]+'–'+z.rows[1]+'</span>').join('')+'<span><i style="background:#ff3b30"></i>แถวที่ห้ามใช้สำหรับตัวนี้</span>')+'</div><div class="advance"><label for="s-adv" style="font-size:15px;color:var(--label2)">ระยะอักษร</label><input id="s-adv" type="range" min="0" max="'+f.w+'" aria-label="ระยะอักษร"><b id="s-advv" style="min-width:48px;text-align:right"></b></div></div>'
   +'<div class="panel"><h2>ตัวอย่างข้อความ</h2><textarea class="preview-text" id="s-text" aria-label="ข้อความตัวอย่าง" placeholder="พิมพ์ข้อความเพื่อดูฟอนต์">'+esc(S.previewText||sampleOf(f))+'</textarea><div class="preview-box" id="s-prev-box" style="background:'+c.colors[0]+'"><canvas id="s-prev"></canvas></div></div></div>'
-  +'<div class="panel"><h2>อักษรทั้งหมด</h2><label class="search" style="margin:0 0 10px">'+ic('search')+'<input id="s-find" type="search" placeholder="ค้นหาอักษร" aria-label="ค้นหาอักษร"></label><div class="glyphs" id="s-glyphs" role="group" aria-label="รายการอักษร"></div>'+(ro?'':'<button class="btn tint block" data-act="add-glyph" style="margin-top:10px">'+ic('plus')+' เพิ่มอักษร</button>')+'</div></div>';
+  +'<div class="panel"><h2>อักษรทั้งหมด</h2><label class="search" style="margin:0 0 10px">'+ic('search')+'<input id="s-find" type="search" placeholder="ค้นหาอักษร" aria-label="ค้นหาอักษร"></label><div class="glyphs" id="s-glyphs" role="group" aria-label="รายการอักษร"></div>'+'<button class="btn tint block" data-act="check-all" style="margin-top:10px">'+ic('ruler')+' ตรวจเกินเขตทั้งฟอนต์</button>'+(ro?'':'<button class="btn tint block" data-act="add-glyph" style="margin-top:8px">'+ic('plus')+' เพิ่มอักษร</button>')+'</div></div>';
  const cv=$('#edit',el);edit={cv,ctx:cv.getContext('2d')};
  buildGlyphList();selectGlyph(Math.min(S.idx,f.glyphs.length-1),true);bindEditor(f);updateHistoryButtons();
 }
@@ -218,12 +237,28 @@ function selectGlyph(i,force){const f=S.fonts.get(S.cur);if(!f)return;S.idx=i;$$
  const g=f.glyphs[i];$('#s-glyph').textContent='“'+glyphLabel(g)+'” · U+'+[...g.c].map(ch=>ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join('+');
  const adv=$('#s-adv');adv.value=g.a;adv.disabled=!!f.builtin;$('#s-advv').textContent=g.a+' px';sizeEditor();drawEditor();}
 function sizeEditor(){const f=S.fonts.get(S.cur),avail=Math.max(160,Math.min(520,($('.stage')?.clientWidth||320)-4)),sc=Math.max(3,Math.min(Math.floor(avail/f.w),Math.floor(440/f.h)));edit.scale=sc;edit.cv.width=f.w*sc;edit.cv.height=f.h*sc;}
-function drawEditor(buf){const f=S.fonts.get(S.cur),g=f.glyphs[S.idx],{ctx,scale:sc}=edit,colors=pal(f),w=f.w;
- ctx.fillStyle=colors[0];ctx.fillRect(0,0,edit.cv.width,edit.cv.height);
- for(let i=0;i<w*f.h;i++){const v=buf?buf[i]:code(g.p,i),x=i%w,y=(i-x)/w;if(!v&&(x+y)%2){ctx.fillStyle='rgba(128,128,128,.07)';ctx.fillRect(x*sc,y*sc,sc,sc);}if(v){ctx.fillStyle=colors[Math.min(v,3)];ctx.fillRect(x*sc,y*sc,sc,sc);}}
- if(S.grid){ctx.lineWidth=1;for(let x=1;x<w;x++){ctx.strokeStyle=x%8?'rgba(128,128,128,.25)':'rgba(128,128,128,.6)';ctx.beginPath();ctx.moveTo(x*sc+.5,0);ctx.lineTo(x*sc+.5,f.h*sc);ctx.stroke();}
-  for(let y=1;y<f.h;y++){ctx.strokeStyle=y%8?'rgba(128,128,128,.25)':'rgba(128,128,128,.6)';ctx.beginPath();ctx.moveTo(0,y*sc+.5);ctx.lineTo(w*sc,y*sc+.5);ctx.stroke();}}
- ctx.strokeStyle='#ff9f0a';ctx.setLineDash([4,3]);ctx.lineWidth=2;const ax=g.a*sc;ctx.beginPath();ctx.moveTo(ax,0);ctx.lineTo(ax,f.h*sc);ctx.stroke();ctx.setLineDash([]);}
+function drawEditor(buf){const f=S.fonts.get(S.cur),g=f.glyphs[S.idx],{ctx,scale:sc}=edit,colors=pal(f),w=f.w,h=f.h,W=w*sc,H=h*sc;
+ const px=buf?Array.from(buf).join(''):g.p,chk=Core.checkGlyph(f,{c:g.c,a:g.a,p:px});
+ ctx.fillStyle=colors[0];ctx.fillRect(0,0,W,H);
+ if(S.guides&&!Core.tooShort(h)){for(const z of Core.zonesFor(h)){ctx.globalAlpha=.16;ctx.fillStyle=z.color;ctx.fillRect(0,z.rows[0]*sc,W,(z.rows[1]-z.rows[0]+1)*sc);}ctx.globalAlpha=1;}
+ for(let i=0;i<w*h;i++){const v=code(px,i),x=i%w,y=(i-x)/w;if(!v&&(x+y)%2){ctx.fillStyle='rgba(128,128,128,.07)';ctx.fillRect(x*sc,y*sc,sc,sc);}if(v){ctx.fillStyle=colors[Math.min(v,3)];ctx.fillRect(x*sc,y*sc,sc,sc);}}
+ if(S.guides&&!Core.tooShort(h)){ /* rows this kind of character must not use */
+  ctx.fillStyle='rgba(255,59,48,.16)';const [lo,hi]=chk.allowed;if(lo>0)ctx.fillRect(0,0,W,lo*sc);if(hi<h-1)ctx.fillRect(0,(hi+1)*sc,W,(h-1-hi)*sc);
+  ctx.strokeStyle='rgba(255,59,48,.5)';ctx.lineWidth=1;ctx.setLineDash([3,3]);for(const y of [lo,hi+1]){if(y>0&&y<h){ctx.beginPath();ctx.moveTo(0,y*sc);ctx.lineTo(W,y*sc);ctx.stroke();}}ctx.setLineDash([]);
+  const zs=Core.zonesFor(h);ctx.strokeStyle='#30d158';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,(zs[1].rows[1]+1)*sc);ctx.lineTo(W,(zs[1].rows[1]+1)*sc);ctx.stroke();}
+ if(S.grid){ctx.lineWidth=1;for(let x=1;x<w;x++){ctx.strokeStyle=x%8?'rgba(128,128,128,.25)':'rgba(128,128,128,.6)';ctx.beginPath();ctx.moveTo(x*sc+.5,0);ctx.lineTo(x*sc+.5,H);ctx.stroke();}
+  for(let y=1;y<h;y++){ctx.strokeStyle=y%8?'rgba(128,128,128,.25)':'rgba(128,128,128,.6)';ctx.beginPath();ctx.moveTo(0,y*sc+.5);ctx.lineTo(W,y*sc+.5);ctx.stroke();}}
+ ctx.strokeStyle='#ff3b30';ctx.lineWidth=2;for(const i of chk.bad)ctx.strokeRect((i%w)*sc+1,Math.floor(i/w)*sc+1,sc-2,sc-2);
+ ctx.strokeStyle='#ff9f0a';ctx.setLineDash([4,3]);ctx.lineWidth=2;const ax=g.a*sc;ctx.beginPath();ctx.moveTo(ax,0);ctx.lineTo(ax,H);ctx.stroke();ctx.setLineDash([]);
+ showCheck(chk,f);}
+function showCheck(chk,f){const el=$('#s-check');if(!el)return;
+ if(!S.guides||Core.tooShort(f.h)){el.className='check';el.textContent=Core.tooShort(f.h)?'ช่องสูงไม่ถึง 12 px · ไม่มีไกด์สระ/วรรณยุกต์':'ไกด์ปิดอยู่';return;}
+ const name=Core.CLASS_NAMES[chk.cls],rng=chk.allowed[0]+'–'+chk.allowed[1];
+ if(chk.ok){el.className='check ok';el.textContent='✓ '+name+' · วาดได้แถว '+rng+(chk.used?' · ใช้อยู่แถว '+chk.used[0]+'–'+chk.used[1]:' · ยังไม่ได้วาด');}
+ else{el.className='check bad';el.textContent='⚠ '+name+' · '+(chk.bad.length?'เกินเขตแถว '+rng+' ('+chk.bad.length+' พิกเซล, ใช้แถว '+chk.used[0]+'–'+chk.used[1]+')':'')+(chk.tooWide?(chk.bad.length?' · ':'')+'ภาพเกินระยะอักษร (เส้นประส้ม)':'');}}
+function checkAllSheet(){const f=S.fonts.get(S.cur);if(!f)return;const bad=Core.checkFont(f);
+ sheet('<h2>ตรวจเกินเขต</h2><p class="sub">'+(bad.length?'พบ '+bad.length+' อักษรที่เกินขอบเขตการวาดภาษาไทย แตะเพื่อไปแก้':'ไม่พบอักษรที่เกินเขต ✓')+'</p>'+(bad.length?'<div class="group" style="margin:0 0 12px;max-height:50dvh;overflow:auto">'+bad.slice(0,80).map(x=>'<button class="row" data-jump="'+x.i+'"><span class="grow">“'+esc(glyphLabel(x.g))+'” · '+Core.CLASS_NAMES[x.r.cls]+'<small>'+(x.r.bad.length?'เกินเขตแถว '+x.r.allowed.join('–')+' (ใช้ '+x.r.used.join('–')+')':'')+(x.r.tooWide?(x.r.bad.length?' · ':'')+'เกินระยะอักษร':'')+'</small></span>'+ic('chev','chev')+'</button>').join('')+'</div>':'')+'<button class="btn gray block" data-close>ปิด</button>',s=>{
+  s.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(!j)return;closeSheet();S.idx=+j.dataset.jump;$('#s-find').value='';buildGlyphList();selectGlyph(S.idx);$('#edit').scrollIntoView({block:'center',behavior:'smooth'});});});}
 function drawPreview(){const f=S.fonts.get(S.cur),box=$('#s-prev-box');if(!f||!box)return;drawText($('#s-prev'),f,$('#s-text').value,3,Math.max(120,box.clientWidth-16||300));}
 function updateHistoryButtons(){const u=$('#u-undo'),r=$('#u-redo');if(u)u.disabled=!S.undo.length;if(r)r.disabled=!S.redo.length;}
 function guardEdit(){if(editable())return true;toast('ฟอนต์ในตัวแก้ไขไม่ได้ · กด “ทำสำเนาเพื่อแก้ไข”');return false;}
@@ -324,7 +359,7 @@ document.addEventListener('click',e=>{const t=e.target;
  const a=t.closest('[data-act]')?.dataset.act;if(!a||t.closest('.sheet'))return;
  if(a==='theme'){applyTheme(isDark()?'light':'dark',true);return;}
  if(a==='new')newFontSheet();else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
- else if(a==='add-glyph')addGlyphSheet();else if(a==='grid'){S.grid=!S.grid;drawEditor();}
+ else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;drawEditor();}
  else if(a==='dup-edit'){const f=S.fonts.get(S.cur),d=duplicate(f);addFont(d).then(()=>{openStudio(d.id);toast('ทำสำเนาแล้ว แก้ไขได้เลย');});}
  else if(a==='sync')syncNow(false);else if(a==='signout'){FontLabCloud.signOut();S.cloudMsg='';toast('ออกจากระบบแล้ว');}
  else if(a==='auto'){S.auto=!S.auto;try{localStorage.setItem('fontlab.auto',S.auto?'yes':'no');}catch{}renderCloud();if(S.auto)scheduleSync();}

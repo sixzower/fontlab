@@ -1,4 +1,4 @@
-FontLab starter — NDS · ฟอนต์เปล่า
+FontLab starter — DS · ฟอนต์เปล่า
 เครื่อง: Nintendo DS
 ขนาดช่องอักษร: 16×16 px
 รูปแบบไบนารี: 4bpp packed, left pixel in low nibble (GBA / DS) (4 bpp)

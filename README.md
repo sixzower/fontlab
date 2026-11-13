@@ -2,6 +2,12 @@
 
 Static Thai ROM translation workspace. The game stays on the user's device. Live site: https://sixzower.github.io/RomTranslate/ . The downloadable `download/index.html` supports local editing and Excel; threaded mGBA testing uses the live site.
 
+## FontLab console menu and Thai drawing limits (1.0.21)
+
+The Consoles tab is now a grouped app-icon menu (handhelds, home/arcade, 3D-era, other) covering 25 targets: GB, GBC, GBA, DS, PSP, Game Gear, Neo Geo Pocket, WonderSwan, NES, SNES, N64, PS1, Mega Drive, Master System, Mega CD, Saturn, PC Engine, Atari 2600, arcade, 3DS, PS2, GameCube/Wii, Switch, Dreamcast and a custom entry. Tile machines use their real tile formats; consoles whose fonts are game-specific textures (PSP, N64, Saturn, arcade, 3DS and later, Neo Geo Pocket) export a generic linear bitmap and are marked “PNG first” instead of pretending to be a hardware format. WonderSwan and PC Engine reuse the Game Boy / SNES tile layouts and say to verify against the game. Starters were regenerated for every console (`npm run fontlab`).
+
+Drawing limits, measured from the bundled Thai fonts (16 px cell, row 0 = top): tone marks and upper vowels rows 0–5, consonant body rows 6–12 with the baseline under row 12, lower vowels and descenders rows 13–15; other heights scale proportionally and cells under 12 px are flagged as too short. Each console sheet lists the rows for its default cell. In the Studio the zones are tinted, rows a character class must not use are shaded red, offending pixels get a red outline, a status line says “✓ / ⚠” for the current glyph, and “ตรวจเกินเขตทั้งฟอนต์” lists every glyph that exceeds its rows or advance width. The four built-in fonts pass the check with no false positives.
+
 ## FontLab official logo (1.0.20)
 
 The chosen logo is option 9: a white pencil with an orange eraser drawing a pixel line, on a graphite tile. It is now the sidebar logo, browser tab icon (`icon.svg`, `favicon.ico`), iPhone/iPad home-screen icon and installable-app icons. `node scripts/build_fontlab_icons.cjs` regenerates them from `fontlab/logo-options/option-9.svg`.

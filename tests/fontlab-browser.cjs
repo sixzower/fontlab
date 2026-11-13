@@ -33,14 +33,15 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('#page-library [data-act=theme]');assert.strictEqual(await bg(),'rgb(255, 255, 255)');
  await page.click('#page-library [data-act=new]');await page.click('.sheet .sel >> nth=0');assert.ok(await page.locator('.menu [role=option]').count()>=10,'menu lists consoles');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/menu.png':undefined});
- await page.click('.menu [role=option]:has-text("Super Nintendo")');assert.strictEqual(await page.locator('#nf-con').inputValue(),'snes');assert.ok(/Super Nintendo/.test(await page.locator('.sheet .sel >> nth=0').innerText()));
+ await page.click('.menu [role=option]:has-text("Super Famicom")');assert.strictEqual(await page.locator('#nf-con').inputValue(),'snes');assert.ok(/Super Famicom/.test(await page.locator('.sheet .sel >> nth=0').innerText()));
  assert.deepStrictEqual(await page.locator('#nf-bpp option').allInnerTexts(),['2 บิต','4 บิต'],'dependent select refreshed');
  await page.keyboard.press('Escape');await page.keyboard.press('Escape');assert.strictEqual(await page.locator('.sheet').count(),0);
  /* console starters */
- await page.click('.tab[data-tab=consoles]');assert.strictEqual(await page.locator('[data-console]').count(),10);
+ await page.click('.tab[data-tab=consoles]');assert.strictEqual(await page.locator('[data-console]').count(),25);assert.strictEqual(await page.locator('.cgroup').count(),4);
  await page.click('[data-console=gb]');
  const [dl]=await Promise.all([page.waitForEvent('download'),page.click('[data-act=zip]')]);assert.ok(/gb-starter\.zip$/.test(dl.suggestedFilename()));
  const zbuf=fs.readFileSync(await dl.path());assert.strictEqual(zbuf.readUInt32LE(0),0x04034b50);
+ assert.ok(/แถว 0–5/.test(await page.locator('.sheet').innerText()),'zone rules shown in console sheet');
  await page.click('[data-act=start-blank]');await page.waitForSelector('#edit');
  /* draw + undo */
  const box=await page.locator('#edit').boundingBox();
@@ -50,6 +51,11 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('#u-undo');assert.strictEqual(await ink(),0,'undo clears stroke');await page.click('#u-redo');assert.strictEqual(await ink(),drawn);
  await page.click('[data-tool=fill]');await page.click('[data-color="2"]');await page.mouse.click(box.x+box.width-5,box.y+5);assert.ok(await ink()>drawn,'fill works');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/studio.png':undefined});
+ /* drawing guide: ink outside the allowed rows is flagged */
+ await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);S.idx=f.glyphs.findIndex(g=>g.c==='ก');});await page.click('#s-glyphs .gl >> nth=1');
+ await page.click('[data-tool=pencil]');await page.click('[data-color="1"]');
+ await page.locator('#edit').evaluate(e=>e.scrollIntoView({block:'center'}));const b2=await page.locator('#edit').boundingBox();await page.mouse.click(b2.x+10,b2.y+8);assert.ok(/เกินเขต/.test(await page.locator('#s-check').innerText()),'row 0 flagged for a consonant');
+ await page.click('[data-act=check-all]');assert.ok(await page.locator('.sheet [data-jump]').count()>=1,'check-all lists the glyph');await page.keyboard.press('Escape');
  /* built-in is read only, duplicate to edit */
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-sword-shield-th]');
  await page.click('#edit');assert.ok(await page.locator('.toast.on').count(),'read-only toast');

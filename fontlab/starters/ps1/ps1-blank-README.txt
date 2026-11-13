@@ -1,5 +1,5 @@
 FontLab starter — PS1 · ฟอนต์เปล่า
-เครื่อง: PlayStation
+เครื่อง: PlayStation 1
 ขนาดช่องอักษร: 16×16 px
 รูปแบบไบนารี: 4bpp linear bitmap rows, low nibble first (4 bpp)
 ลำดับพิกเซล: บิตแมปเส้นตรงทีละแถว ซ้าย→ขวา บน→ล่าง ต่อ 1 ตัวอักษร

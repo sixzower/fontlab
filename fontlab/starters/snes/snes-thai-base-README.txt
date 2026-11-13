@@ -1,5 +1,5 @@
 FontLab starter — SNES · ไทยพื้นฐาน
-เครื่อง: Super Nintendo
+เครื่อง: Super Famicom / SNES
 ขนาดช่องอักษร: 8×16 px
 รูปแบบไบนารี: 2bpp interleaved (Game Boy, SNES) (2 bpp)
 ลำดับไทล์ต่อ 1 ตัวอักษร: ซ้าย→ขวา แล้วบน→ล่าง (ไทล์ 8×8 ละ 16 ไบต์)
