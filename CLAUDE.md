@@ -2,10 +2,8 @@
 
 Every change to the app (code, UI or behaviour) must increase the version:
 
-1. Bump the patch number in `package.json` (e.g. 0.32.59 → 0.32.60).
-2. Add a README section headed with that version describing the change.
-3. Run `python3 scripts/bundle.py`. It writes `release.json`, `release-info.js`, the “เว็บ x.y.z” label, versioned asset URLs and `download/index.html`; commit those generated files too.
+1. Bump the patch number in `package.json` (e.g. 1.0.24 → 1.0.25).
+2. Add a README changelog entry headed with that version.
+3. Run `npm run build`; it regenerates `data/schema.js`, `starters/` and the single-file `download/index.html`. Commit the generated files too.
 
-`update-notice.js` compares the deployed `release.json` with the running `AppRelease`, so users only see “มีเว็บรุ่นใหม่” when the number goes up.
-
-Checks: `npm run check` (syntax) and `node tests/text-fitter.cjs` (no ROM needed). Tests that take a ROM path need the user's private ROM.
+Checks: `npm run check` (syntax) and `npm test` (core round trips, sandboxed frame, browser flow with Supabase mocked). No ROM is needed.
