@@ -100,7 +100,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  /* persistence */
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');assert.strictEqual(await page.locator('.card').count(),6,'user fonts persisted');
  /* cloud: uploads only when saving (auto upload is an opt-in switch); no login, no cloud tab */
- assert.strictEqual(await page.locator('.tab').count(),3,'no cloud tab');assert.strictEqual(await page.locator('[data-act=sync],#c-form').count(),0,'no login form');
+ assert.strictEqual(await page.locator('.tab').count(),4,'library, studio, consoles, settings');assert.strictEqual(await page.locator('.tab[data-tab=cloud]').count(),0,'no cloud tab');assert.strictEqual(await page.locator('[data-act=sync],#c-form').count(),0,'no login form');
  await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:8000});
  const code=await page.evaluate(()=>localStorage.getItem('fontlab.code.v2'));assert.ok(/^[a-f0-9]{64}$/.test(code),'backup code created automatically');
  const vault=()=>vaults.get(code),puts=()=>calls.filter(c=>c==='fontlab_put').length;
@@ -177,6 +177,17 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  const lay=await page.evaluate(()=>{const st=document.querySelector('.studio'),k=[...st.children].map(c=>c.getBoundingClientRect());return{n:st.children.length,sameRow:k.length===2&&Math.abs(k[0].top-k[1].top)<4,rightOfLeft:k.length===2&&k[1].left>k[0].left+100,glyphsInRight:!!st.children[1]?.querySelector('#s-glyphs')};});
  assert.strictEqual(lay.n,2,'studio has exactly two columns (left: draw + preview, right: glyph list)');assert.ok(lay.sameRow&&lay.rightOfLeft&&lay.glyphsInRight,'glyph list sits beside the canvas on a wide screen: '+JSON.stringify(lay));
  const bal=await page.evaluate(()=>{const html=document.querySelector('#page-studio').innerHTML,d=(html.match(/<div/g)||[]).length,c=(html.match(/<\/div>/g)||[]).length;return d-c;});assert.strictEqual(bal,0,'studio markup has balanced <div> tags');
+ /* sidebar extras + settings page (1280 px viewport) */
+ await page.click('.tab[data-tab=library]');
+ assert.ok(await page.locator('.side-sec [data-recent]').count()>=1,'recent fonts are listed in the sidebar');assert.ok(/เวอร์ชัน \d/.test(await page.locator('.side-ver').innerText()),'sidebar shows the version');assert.ok((await page.locator('[data-cloud-text]').first().innerText()).length>3,'sidebar shows the cloud status');
+ await page.locator('[data-sidefilter]').first().click();assert.strictEqual(await page.evaluate(()=>FontLabApp.S.tab),'library');assert.ok(await page.locator('.side-item.on').count()>=1,'console filter highlighted');await page.locator('[data-sidefilter]').first().click();
+ await page.locator('.sq[data-act=new]').click();assert.ok(await page.locator('.sheet .bar-title').count(),'quick action opens the new-font sheet');await page.keyboard.press('Escape');
+ await page.click('.tab[data-tab=settings]');assert.ok(/ตั้งค่า/.test(await page.locator('#page-settings h1').innerText()));
+ await page.click('#set-theme [data-m=dark]');assert.strictEqual(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');await page.click('#set-theme [data-m=system]');assert.strictEqual(await page.evaluate(()=>document.documentElement.dataset.theme||'system'),'system');
+ await page.click('#set-auto');assert.strictEqual(await page.locator('#set-auto').getAttribute('aria-checked'),'true');await page.click('#set-auto');
+ await page.locator('#page-settings .sel').first().click();await page.click('.menu [role=option]:has-text("Super Famicom")');assert.strictEqual(await page.evaluate(()=>localStorage.getItem('fontlab.defaultConsole')),'snes');
+ await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=new]');assert.strictEqual(await page.locator('#nf-con').inputValue(),'snes','default console used for new fonts');await page.keyboard.press('Escape');
+ await page.click('.tab[data-tab=settings]');await page.click('#set-clear');assert.ok(/ลบข้อมูลฟอนต์ในเครื่อง/.test(await page.locator('.sheet').innerText()),'clear-local asks first');await page.keyboard.press('Escape');
  await browser.close();server.close();
  const real=errors.filter(e=>!/Failed to load resource/.test(e));assert.deepStrictEqual(real,[],'console errors');
  console.log('fontlab browser ok');
