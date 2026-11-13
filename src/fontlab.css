@@ -227,3 +227,5 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
  .side-status{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:0 10px;border-radius:9px;text-align:left;font-size:13px;color:var(--label2)}.side-status:hover{background:var(--fill)}.side-status span{flex:1;min-width:0}
  .side-row{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 6px}.side-ver{font-size:12px;color:var(--label2)}
 }
+
+@media(min-width:900px){.dup-side{display:none}.side-row{justify-content:flex-start;padding-left:10px}}

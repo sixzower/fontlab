@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.44** Shorter cloud messages (“ติดต่อคลาวด์ไม่ได้”, “ยังไม่ได้ติดตั้ง SQL บนคลาวด์”); colour toggle only at the top right (removed from the sidebar footer); on wide screens the top-bar Import / New icons are hidden because the sidebar has them (kept on phones).
 - **1.0.43** Sidebar (wide screens): quick New / Import buttons, recent fonts, per-console filters with counts, cloud status, theme toggle and version at the bottom. New Settings tab (also in the mobile tab bar): colour mode (system/light/dark), cloud auto upload and sync, default console for new fonts, local data (usage, clear), shortcuts, about / licences.
 - **1.0.42** Removed the separate “เพิ่มฟอนต์ตั้งต้น” row; starters are chosen only through “ตั้งเป็นฟอนต์ตั้งต้น” in a font's ⋯ menu (the starter group shows only when it has fonts).
 - **1.0.41** Any font can become a starter font (card menu “ตั้งเป็นฟอนต์ตั้งต้น” or “เพิ่มฟอนต์ตั้งต้น” to import a `.fontlab.json`); starters are listed in their own group and a new font can start from one (“จากฟอนต์ตั้งต้น”, resized to the chosen console). The explanatory footnote under the starter group was removed.
