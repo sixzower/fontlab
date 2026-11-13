@@ -183,6 +183,8 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
   await page.keyboard.press('2');assert.strictEqual((await G()).color,1,'2 = second colour');
   await page.keyboard.press('h');assert.notStrictEqual((await G()).p,g0.p,'H flips');await page.keyboard.press('h');assert.strictEqual((await G()).p,g0.p,'H twice restores');
   await page.keyboard.press('PageDown');assert.strictEqual((await G()).i,g0.i+1,'PageDown = next glyph');await page.keyboard.press('PageUp');assert.strictEqual((await G()).i,g0.i,'PageUp = previous glyph');
+  assert.ok(/\(P\)/.test(await page.locator('[data-tool=pencil]').evaluate(b=>b.title||b.dataset.tip)),'tooltips show the key');assert.ok(/Ctrl\+Z/.test(await page.locator('#u-undo').evaluate(b=>b.title||b.dataset.tip)),'undo tooltip shows Ctrl+Z');
+  await page.click('[data-act=shortcuts]');assert.ok(/ปุ่มลัดในสตูดิโอ/.test(await page.locator('.sheet').innerText()),'keyboard button opens the shortcuts');await page.keyboard.press('Escape');
   await page.keyboard.press('Shift+?');assert.ok(/ปุ่มลัดในสตูดิโอ/.test(await page.locator('.sheet').innerText()),'? lists the shortcuts');await page.keyboard.press('Escape');}
  /* studio: Ctrl+click several glyphs, delete them with one confirmation */
  {const n0=await page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length);
