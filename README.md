@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.38** iOS polish (part 1): form sheets get a header bar (Cancel · title · primary action) and can be swiped down; softer focus ring; studio has a back button and a “more” menu (settings, export); long-press / right-click on a font card opens its menu; console rules as inset lists; larger small text; sticky glyph column and wider cards on desktop.
 - **1.0.37** The four big buttons under the glyph list (shadow, auto spacing, check, add glyph) became an iOS-style inset list: icon, title with a short description, chevron, hairline separators.
 - **1.0.36** Fixed a layout regression from 1.0.35: an unclosed tools-row `div` pushed the glyph list below the canvas on wide screens. Tests now check that the studio has two columns with the glyph list beside the canvas and that its markup is balanced.
 - **1.0.35** Guide lines are single dashed lines again (no halo, no doubled stroke; colour black/white by palette; baseline solid). New tag button after the ruler: faint zone names inside the canvas (วรรณยุกต์ · สระบน / พยัญชนะ / สระล่าง · หาง, and “ห้ามใช้” on rows the glyph class must not use). Remembered; turning it on also turns the guides on.
