@@ -158,7 +158,6 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.click('[data-set^=ABC]');await page.click('[data-set^=abc]');
  assert.ok((await page.inputValue('#ag')).includes('Za'),'chips fill the input');await page.click('#bar-done');
  assert.ok(await page.evaluate(()=>{const f=FontLabApp.S.fonts.get(FontLabApp.S.cur),a=f.glyphs.find(g=>g.c==='A'),z=f.glyphs.find(g=>g.c==='z');return a&&z&&/[1-3]/.test(a.p)&&/[1-3]/.test(z.p)&&a.p.length===f.w*f.h;}),'A and z added with pixels');
-<<<<<<< HEAD
  /* auto-fill Latin to match the font: a shadow font (Seaglass) gets shadows */
  await page.evaluate(()=>{const f=FontLabApp.S.fonts.get(FontLabApp.S.cur);f.glyphs=f.glyphs.filter(g=>g.c!=='B'&&g.c!=='7');});
  await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.click('#ag-auto');
@@ -166,8 +165,6 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-seaglass-th-complete]');await page.waitForSelector('#edit');
  await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.click('#ag-auto');
  assert.ok(await page.evaluate(()=>{const f=FontLabApp.S.fonts.get('builtin-seaglass-th-complete'),b=f.glyphs.find(g=>g.c==='B');return b&&/1/.test(b.p)&&/2/.test(b.p)&&b.a<=f.w;}),'auto-fill gives shadowed letters on a shadow font');
-=======
->>>>>>> origin/main
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');await page.locator('.card:has-text("พิกเซล")').first().click();await page.waitForSelector('#edit');
  const chunk=await page.locator('#s-glyphs .gl').count();assert.ok(chunk<=240&&chunk>=200,'first chunk only: '+chunk);await page.locator('.gl-more').scrollIntoViewIfNeeded();await page.waitForFunction(n=>document.querySelectorAll('#s-glyphs .gl').length>n,chunk,{timeout:5000});
  /* starter fonts: mark any font as a starter in its menu, start a new font from it */
