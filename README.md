@@ -2,6 +2,10 @@
 
 Static Thai ROM translation workspace. The game stays on the user's device. Live site: https://sixzower.github.io/RomTranslate/ . The downloadable `download/index.html` supports local editing and Excel; threaded mGBA testing uses the live site.
 
+## FontLab points to the live Supabase project (1.0.23)
+
+`fontlab/config.js` now uses the healthy Supabase project (publishable key only); the old host no longer exists (DNS NXDOMAIN). `cloud/fontlab.sql` is installed there. A live round trip was checked with a throw-away backup code: put, list, get, delete worked, a different code saw nothing, a malformed code was rejected and reading the tables directly was refused. FontLab is served from GitHub Pages at `/fontlab/` under the site root once this reaches main.
+
 ## FontLab automatic cloud backup, no login (1.0.22)
 
 The Cloud tab and email sign-in are gone. FontLab now creates a random 256-bit backup code in the browser and saves every user font to Supabase by itself a moment after each edit, create, duplicate, import or delete (status dot on the cloud button next to the theme button). Moving to another device: open the cloud sheet, copy the code, paste it on the other device and tap “เชื่อมต่อด้วยรหัสนี้และรวมฟอนต์” (newest copy wins; deletions are replayed). Built-in fonts are never uploaded.

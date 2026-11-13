@@ -1,2 +1,2 @@
-/* Public Supabase project settings only (anon/publishable key). Never put a service key here. */
-window.FontLabConfig=Object.freeze({url:'https://pmblmprfpqtgkojrgtal.supabase.co',key:'sb_publishable_yuIugRAnv5ISGX6cEgi00g_gKY1PdsC'});
+/* Public Supabase project settings only (publishable key). Never put a secret/service_role key here. */
+window.FontLabConfig=Object.freeze({url:'https://opceuxrvzwbzuwzmubsh.supabase.co',key:'sb_publishable_C5l7c8PPczcZT8BPx5lKkw_BHeuf1DO'});
