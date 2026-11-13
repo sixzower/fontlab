@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.36** Fixed a layout regression from 1.0.35: an unclosed tools-row `div` pushed the glyph list below the canvas on wide screens. Tests now check that the studio has two columns with the glyph list beside the canvas and that its markup is balanced.
 - **1.0.35** Guide lines are single dashed lines again (no halo, no doubled stroke; colour black/white by palette; baseline solid). New tag button after the ruler: faint zone names inside the canvas (วรรณยุกต์ · สระบน / พยัญชนะ / สระล่าง · หาง, and “ห้ามใช้” on rows the glyph class must not use). Remembered; turning it on also turns the guides on.
 - **1.0.34** Guide lines are single solid lines (no dashes, no halo): colour is black or white depending on the console palette, the advance line is 3 px with an arrow, the baseline 3 px, the top/body boundary 2 px.
 - **1.0.33** Clearer guide lines in the studio: the advance line and zone boundaries are thicker, use the theme colour with a contrasting halo (visible on any console palette) and the advance line has an arrow marker.

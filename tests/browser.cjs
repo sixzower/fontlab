@@ -131,6 +131,9 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.setViewportSize({width:1280,height:820});await page.click('.tab[data-tab=library]');await page.locator('.card').first().click();await page.waitForSelector('#edit');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/studio-desktop.png':undefined});
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert.ok(!overflow,'no horizontal overflow');
+ const lay=await page.evaluate(()=>{const st=document.querySelector('.studio'),k=[...st.children].map(c=>c.getBoundingClientRect());return{n:st.children.length,sameRow:k.length===2&&Math.abs(k[0].top-k[1].top)<4,rightOfLeft:k.length===2&&k[1].left>k[0].left+100,glyphsInRight:!!st.children[1]?.querySelector('#s-glyphs')};});
+ assert.strictEqual(lay.n,2,'studio has exactly two columns (left: draw + preview, right: glyph list)');assert.ok(lay.sameRow&&lay.rightOfLeft&&lay.glyphsInRight,'glyph list sits beside the canvas on a wide screen: '+JSON.stringify(lay));
+ const bal=await page.evaluate(()=>{const html=document.querySelector('#page-studio').innerHTML,d=(html.match(/<div/g)||[]).length,c=(html.match(/<\/div>/g)||[]).length;return d-c;});assert.strictEqual(bal,0,'studio markup has balanced <div> tags');
  await browser.close();server.close();
  const real=errors.filter(e=>!/Failed to load resource/.test(e));assert.deepStrictEqual(real,[],'console errors');
  console.log('fontlab browser ok');
