@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.53** Removed the “คืนฟอนต์ตั้งต้นที่ลบไป” button from the library; a deleted starter font stays deleted (a modified one can still be reset from its ⋯ menu).
 - **1.0.52** Studio: Ctrl/Cmd+click picks several characters in the character list (ticked thumbnails and a “เลือก N อักษร” bar with “ลบที่เลือก” and “ยกเลิก”; the glyph being edited counts as the first pick, once a selection is open a plain click toggles too, Esc clears it). One confirmation deletes them all and the delete is undoable.
 - **1.0.51** “เพิ่มอักษร” sheet: button “เติม A–Z a–z 0–9 ให้เข้ากับฟอนต์อัตโนมัติ” fills only the missing Latin letters and digits, aligned to the font's Thai baseline, with the same shadow direction when the font has a shadow, and spacing set from the ink edge (undoable).
 - **1.0.50** “เพิ่มอักษร” sheet: quick chips for A–Z, a–z, 0–9 and punctuation, with a switch (on by default) that fills each new glyph with the pixels of the bundled public-domain 8×16 font (resized to the font's cell, editable afterwards); off gives blank glyphs. Works for every font, including the four older built-ins that had no Latin letters.
