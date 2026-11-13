@@ -94,6 +94,13 @@ function addShadow(pr,g,dir,{clear=true}={}){
  let a=g.a;if(!marks&&maxCol>=a)a=Math.min(w,maxCol+1);
  return{p,a,added,clipped,changed:p!==g.p||a!==g.a};}
 
+/* advance = right edge of the ink + gap (letters only; vowel/tone marks keep theirs) */
+function autoSpacing(pr,g,gap=1){if(['upper','tone','lower','cluster'].includes(classOf(g.c)))return{a:g.a,changed:false};
+ let right=-1;for(let i=0;i<g.p.length;i++)if(g.p[i]!=='0')right=Math.max(right,i%pr.w);
+ if(right<0)return{a:g.a,changed:false};const a=Math.min(pr.w,right+1+gap);return{a,changed:a!==g.a};}
+/* one byte per glyph, same order as the bank: for games that keep a separate width table */
+const widthsBank=pr=>Uint8Array.from(pr.glyphs,g=>Math.min(255,g.a));
+
 /* remove every shadow pixel (index 2); the advance is left as it is */
 function removeShadow(g){const p=g.p.replace(/2/g,'0');return{p,a:g.a,removed:(g.p.match(/2/g)||[]).length,changed:p!==g.p};}
 
@@ -192,12 +199,12 @@ function layoutText(pr,text,maxWidth=Infinity){
  return items;}
 
 /* ---------- starter files ---------- */
-function glyphOrderText(pr){const per=bytesPerGlyph(pr);return pr.glyphs.map((g,i)=>String(i).padStart(4,'0')+'  0x'+(i*per).toString(16).padStart(6,'0').toUpperCase()+'  '+g.c+'  U+'+[...g.c].map(ch=>ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join('+')).join('\n');}
+function glyphOrderText(pr){const per=bytesPerGlyph(pr);return pr.glyphs.map((g,i)=>String(i).padStart(4,'0')+'  0x'+(i*per).toString(16).padStart(6,'0').toUpperCase()+'  '+String(g.a).padStart(2)+'  '+g.c+'  U+'+[...g.c].map(ch=>ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join('+')).join('\n');}
 function readme(pr){const c=consoleOf(pr.console),f=formatFor(pr),per=bytesPerGlyph(pr),s=sheetSize(pr);
  return ['FontLab starter — '+pr.name,'เครื่อง: '+c.name,'ขนาดช่องอักษร: '+pr.w+'×'+pr.h+' px','รูปแบบไบนารี: '+f.name+' ('+pr.bpp+' bpp)',
   f.linear?'ลำดับพิกเซล: บิตแมปเส้นตรงทีละแถว ซ้าย→ขวา บน→ล่าง ต่อ 1 ตัวอักษร':'ลำดับไทล์ต่อ 1 ตัวอักษร: ซ้าย→ขวา แล้วบน→ล่าง (ไทล์ 8×8 ละ '+f.bytes+' ไบต์)',
   'ขนาดต่อ 1 ตัวอักษร: '+per+' ไบต์ · รวม '+pr.glyphs.length+' ตัวอักษร = '+per*pr.glyphs.length+' ไบต์','PNG sheet: '+s.cols+' คอลัมน์ × '+s.rows+' แถว ('+s.width+'×'+s.height+' px) ลำดับเดียวกับตารางด้านล่าง',
-  'สีดัชนี 0 = พื้นโปร่ง · 1 = หมึก · 2 = เงา · 3 = เสริม ('+c.colors.join(', ')+')','','หมายเหตุ: '+c.notes,'ออฟเซ็ตด้านล่างนับจากต้นไฟล์ .bin ถ้านำไปแทนที่ในรอมให้บวก offset ของฟอนต์ในรอมนั้น','','INDEX OFFSET CHAR UNICODE',glyphOrderText(pr),''].join('\n');}
+  'สีดัชนี 0 = พื้นโปร่ง · 1 = หมึก · 2 = เงา · 3 = เสริม ('+c.colors.join(', ')+')','','หมายเหตุ: '+c.notes,'ออฟเซ็ตด้านล่างนับจากต้นไฟล์ .bin ถ้านำไปแทนที่ในรอมให้บวก offset ของฟอนต์ในรอมนั้น','','INDEX OFFSET ADV CHAR UNICODE (ADV = ระยะอักษรเป็นพิกเซล ไม่อยู่ในไฟล์ .bin ใช้กับตารางความกว้างของเกม หรือไฟล์ *-widths.bin)',glyphOrderText(pr),''].join('\n');}
 
 /* starter project for a console: kind 'blank' or 'thai-base' (seeded from a built-in font) */
 function starter(cid,kind,base){const c=consoleOf(cid);
@@ -218,6 +225,6 @@ function zip(files){const enc=new TextEncoder(),parts=[],central=[];let off=0;
  const csize=central.reduce((n,p)=>n+p.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,csize,true);end.setUint32(16,off,true);
  const all=[...parts,...central,new Uint8Array(end.buffer)],out=new Uint8Array(all.reduce((n,p)=>n+p.length,0));let o=0;for(const p of all){out.set(p,o);o+=p.length;}return out;}
 
-return{SHADOW_DIRS,addShadow,removeShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
+return{autoSpacing,widthsBank,SHADOW_DIRS,addShadow,removeShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
  bytesPerGlyph,exportBank,importBank,sheetSize,renderSheet,readSheet,layoutText,readme,zip,crc32,uid};
 });

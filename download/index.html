@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="1.0.27">
+<meta name="app-version" content="1.0.28">
 <title>FontLab</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzYTNhM2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwYTBhMGIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNC41IiBmaWxsPSJ1cmwoI2cpIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoNDUgMzIgMjgpIj48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iMzAiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iI2ZmOWYwYSIvPjxwYXRoIGQ9Ik0yOCAzNmg4bC00IDl6IiBmaWxsPSIjZDFkMWQ2Ii8+PHBhdGggZD0iTTMwLjUgNDEuNWgzbC0xLjUgMy41eiIgZmlsbD0iIzFjMWMxZSIvPjwvZz48cmVjdCB4PSIxNCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyMCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyNiIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii41Ii8+PC9zdmc+Cg==">
 <meta name="apple-mobile-web-app-title" content="FontLab">
@@ -176,6 +176,9 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .cdot.ok{background:var(--green)}.cdot.busy{background:var(--orange);animation:pulse 1s ease-in-out infinite}.cdot.err{background:var(--red)}
 @keyframes pulse{50%{opacity:.35}}
 .sheet .cdot{position:static;flex:none;box-shadow:none}
+
+/* saved line */
+.saved{margin:2px 0 0!important;font-size:13px;color:var(--label2)}.saved.ok{color:var(--green)}.saved.busy{color:var(--orange)}.saved.err{color:var(--red)}
 </style>
 </head>
 <body>
@@ -295,6 +298,13 @@ function addShadow(pr,g,dir,{clear=true}={}){
  let a=g.a;if(!marks&&maxCol>=a)a=Math.min(w,maxCol+1);
  return{p,a,added,clipped,changed:p!==g.p||a!==g.a};}
 
+/* advance = right edge of the ink + gap (letters only; vowel/tone marks keep theirs) */
+function autoSpacing(pr,g,gap=1){if(['upper','tone','lower','cluster'].includes(classOf(g.c)))return{a:g.a,changed:false};
+ let right=-1;for(let i=0;i<g.p.length;i++)if(g.p[i]!=='0')right=Math.max(right,i%pr.w);
+ if(right<0)return{a:g.a,changed:false};const a=Math.min(pr.w,right+1+gap);return{a,changed:a!==g.a};}
+/* one byte per glyph, same order as the bank: for games that keep a separate width table */
+const widthsBank=pr=>Uint8Array.from(pr.glyphs,g=>Math.min(255,g.a));
+
 /* remove every shadow pixel (index 2); the advance is left as it is */
 function removeShadow(g){const p=g.p.replace(/2/g,'0');return{p,a:g.a,removed:(g.p.match(/2/g)||[]).length,changed:p!==g.p};}
 
@@ -393,12 +403,12 @@ function layoutText(pr,text,maxWidth=Infinity){
  return items;}
 
 /* ---------- starter files ---------- */
-function glyphOrderText(pr){const per=bytesPerGlyph(pr);return pr.glyphs.map((g,i)=>String(i).padStart(4,'0')+'  0x'+(i*per).toString(16).padStart(6,'0').toUpperCase()+'  '+g.c+'  U+'+[...g.c].map(ch=>ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join('+')).join('\n');}
+function glyphOrderText(pr){const per=bytesPerGlyph(pr);return pr.glyphs.map((g,i)=>String(i).padStart(4,'0')+'  0x'+(i*per).toString(16).padStart(6,'0').toUpperCase()+'  '+String(g.a).padStart(2)+'  '+g.c+'  U+'+[...g.c].map(ch=>ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join('+')).join('\n');}
 function readme(pr){const c=consoleOf(pr.console),f=formatFor(pr),per=bytesPerGlyph(pr),s=sheetSize(pr);
  return ['FontLab starter — '+pr.name,'เครื่อง: '+c.name,'ขนาดช่องอักษร: '+pr.w+'×'+pr.h+' px','รูปแบบไบนารี: '+f.name+' ('+pr.bpp+' bpp)',
   f.linear?'ลำดับพิกเซล: บิตแมปเส้นตรงทีละแถว ซ้าย→ขวา บน→ล่าง ต่อ 1 ตัวอักษร':'ลำดับไทล์ต่อ 1 ตัวอักษร: ซ้าย→ขวา แล้วบน→ล่าง (ไทล์ 8×8 ละ '+f.bytes+' ไบต์)',
   'ขนาดต่อ 1 ตัวอักษร: '+per+' ไบต์ · รวม '+pr.glyphs.length+' ตัวอักษร = '+per*pr.glyphs.length+' ไบต์','PNG sheet: '+s.cols+' คอลัมน์ × '+s.rows+' แถว ('+s.width+'×'+s.height+' px) ลำดับเดียวกับตารางด้านล่าง',
-  'สีดัชนี 0 = พื้นโปร่ง · 1 = หมึก · 2 = เงา · 3 = เสริม ('+c.colors.join(', ')+')','','หมายเหตุ: '+c.notes,'ออฟเซ็ตด้านล่างนับจากต้นไฟล์ .bin ถ้านำไปแทนที่ในรอมให้บวก offset ของฟอนต์ในรอมนั้น','','INDEX OFFSET CHAR UNICODE',glyphOrderText(pr),''].join('\n');}
+  'สีดัชนี 0 = พื้นโปร่ง · 1 = หมึก · 2 = เงา · 3 = เสริม ('+c.colors.join(', ')+')','','หมายเหตุ: '+c.notes,'ออฟเซ็ตด้านล่างนับจากต้นไฟล์ .bin ถ้านำไปแทนที่ในรอมให้บวก offset ของฟอนต์ในรอมนั้น','','INDEX OFFSET ADV CHAR UNICODE (ADV = ระยะอักษรเป็นพิกเซล ไม่อยู่ในไฟล์ .bin ใช้กับตารางความกว้างของเกม หรือไฟล์ *-widths.bin)',glyphOrderText(pr),''].join('\n');}
 
 /* starter project for a console: kind 'blank' or 'thai-base' (seeded from a built-in font) */
 function starter(cid,kind,base){const c=consoleOf(cid);
@@ -419,7 +429,7 @@ function zip(files){const enc=new TextEncoder(),parts=[],central=[];let off=0;
  const csize=central.reduce((n,p)=>n+p.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,csize,true);end.setUint32(16,off,true);
  const all=[...parts,...central,new Uint8Array(end.buffer)],out=new Uint8Array(all.reduce((n,p)=>n+p.length,0));let o=0;for(const p of all){out.set(p,o);o+=p.length;}return out;}
 
-return{SHADOW_DIRS,addShadow,removeShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
+return{autoSpacing,widthsBank,SHADOW_DIRS,addShadow,removeShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
  bytesPerGlyph,exportBank,importBank,sheetSize,renderSheet,readSheet,layoutText,readme,zip,crc32,uid};
 });
 </script>
@@ -490,7 +500,7 @@ const Store=(()=>{let db=null;const mem=new Map();
   put:async f=>{mem.set(f.id,f);if(db)await tx('readwrite',s=>s.put(f));},del:async id=>{mem.delete(id);if(db)await tx('readwrite',s=>s.delete(id));},persistent:()=>!!db};})();
 
 /* ---------- state ---------- */
-const S={guides:true,fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloud:{state:'idle',msg:'',last:null,count:0,warned:false}};
+const S={save:'done',guides:true,fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloud:{state:'idle',msg:'',last:null,count:0,warned:false}};
 const userFonts=()=>[...S.fonts.values()].filter(f=>!f.builtin);
 const consoleColor=id=>Core.consoleOf(id).tint;
 let toastTimer;function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),2600);}
@@ -537,10 +547,15 @@ addEventListener('resize',closeMenu);document.addEventListener('keydown',e=>{if(
 
 /* ---------- persistence ---------- */
 const saveTimers=new Map();let syncTimer;
-function touch(f){f.updatedAt=Date.now();clearTimeout(saveTimers.get(f.id));saveTimers.set(f.id,setTimeout(()=>Store.put(f).catch(()=>toast('บันทึกในเครื่องไม่สำเร็จ')),400));scheduleSync();}
+const savedText=()=>S.save==='saving'?'กำลังบันทึก…':'✓ บันทึกในเครื่องแล้ว'+({ok:' · และบนคลาวด์แล้ว',busy:' · กำลังส่งขึ้นคลาวด์…',err:' · คลาวด์ยังไม่สำเร็จ (ดูที่ไอคอนคลาวด์)'}[S.cloud.state]||'');
+function refreshSaved(){const el=$('#s-saved');if(el){el.textContent=savedText();el.className='saved '+(S.save==='saving'?'busy':S.cloud.state==='err'?'err':'ok');}}
+function touch(f){f.updatedAt=Date.now();S.save='saving';refreshSaved();clearTimeout(saveTimers.get(f.id));saveTimers.set(f.id,setTimeout(()=>Store.put(f).then(()=>{S.save='done';refreshSaved();}).catch(()=>toast('บันทึกในเครื่องไม่สำเร็จ')),400));scheduleSync();}
+async function saveNow(){const f=editable();if(!f)return toast('ฟอนต์ในตัวไม่ต้องบันทึก · ทำสำเนาเพื่อแก้ไขก่อน');
+ clearTimeout(saveTimers.get(f.id));S.save='saving';refreshSaved();
+ try{await Store.put(f);S.save='done';refreshSaved();toast('บันทึกในเครื่องแล้ว · กำลังส่งขึ้นคลาวด์');await syncNow(true,true);toast(S.cloud.state==='ok'?'บันทึกแล้ว ✓ ในเครื่องและบนคลาวด์':S.cloud.state==='err'?'บันทึกในเครื่องแล้ว · คลาวด์ยังไม่สำเร็จ: '+S.cloud.msg:'บันทึกแล้ว');}catch{S.save='done';refreshSaved();toast('บันทึกในเครื่องไม่สำเร็จ ส่งออกไฟล์เก็บไว้ด้วย');}}
 /* Cloud backup is automatic: every save schedules a sync to the vault named by this browser's backup code. */
 const syncDelay=()=>Number.isFinite(window.FontLabSyncDelay)?window.FontLabSyncDelay:2500;
-function setCloud(state,msg){S.cloud.state=state;S.cloud.msg=msg||'';$$('.cdot').forEach(d=>{d.className='cdot '+state;});const box=$('#cloud-status');if(box)box.textContent=cloudText();}
+function setCloud(state,msg){S.cloud.state=state;S.cloud.msg=msg||'';$$('.cdot').forEach(d=>{d.className='cdot '+state;});const box=$('#cloud-status');if(box)box.textContent=cloudText();refreshSaved();}
 const cloudText=()=>({busy:S.cloud.msg||'กำลังซิงก์…',ok:'บันทึกบนคลาวด์แล้ว'+(S.cloud.last?' · '+S.cloud.last.toLocaleTimeString('th-TH'):''),err:S.cloud.msg,idle:'พร้อมสำรองอัตโนมัติ'}[S.cloud.state]);
 function scheduleSync(){clearTimeout(syncTimer);setCloud('busy','รอบันทึกขึ้นคลาวด์…');syncTimer=setTimeout(()=>syncNow(true),syncDelay());}
 let syncing=false,syncAgain=false;
@@ -677,8 +692,8 @@ function mountStudio(){
  const el=$('#page-studio'),f=S.fonts.get(S.cur);
  if(!f){el.innerHTML=nav('สตูดิโอ')+'<div class="large"><h1>สตูดิโอ</h1></div><div class="empty">'+ic('studio')+'<h2>ยังไม่ได้เลือกฟอนต์</h2>เลือกฟอนต์จากคลัง หรือสร้างใหม่เพื่อเริ่มวาดพิกเซล<div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn" data-act="new">สร้างฟอนต์ใหม่</button><button class="btn tint" data-tab="library">ไปที่คลัง</button></div></div>';edit=null;return;}
  const ro=!!f.builtin,c=Core.consoleOf(f.console),max=Core.maxIndex(f),labels=['โปร่ง','หมึก','เงา','เสริม'];if(S.color>max)S.color=1;
- el.innerHTML=nav(f.name,'<button class="icon-btn" id="u-undo" aria-label="ย้อนกลับ">'+ic('undo')+'</button><button class="icon-btn" id="u-redo" aria-label="ทำซ้ำ">'+ic('redo')+'</button><button class="icon-btn" data-act="settings" aria-label="ตั้งค่าฟอนต์">'+ic('gear')+'</button><button class="icon-btn" data-act="export" aria-label="ส่งออก">'+ic('share')+'</button>')
-  +'<div class="large"><input class="namefield" id="s-name" value="'+esc(f.name)+'" maxlength="100" aria-label="ชื่อฟอนต์"'+(ro?' readonly':'')+'><p>'+esc(c.name)+' · ช่อง '+f.w+'×'+f.h+' · '+f.bpp+' บิต · '+f.glyphs.length+' ตัวอักษร</p></div>'
+ el.innerHTML=nav(f.name,(ro?'':'<button class="icon-btn" id="u-save" data-act="save" aria-label="บันทึก" title="บันทึก (เซฟในเครื่องและส่งขึ้นคลาวด์)">'+ic('check')+'<span style="font-size:15px;font-weight:600">บันทึก</span></button>')+'<button class="icon-btn" id="u-undo" aria-label="ย้อนกลับ">'+ic('undo')+'</button><button class="icon-btn" id="u-redo" aria-label="ทำซ้ำ">'+ic('redo')+'</button><button class="icon-btn" data-act="settings" aria-label="ตั้งค่าฟอนต์">'+ic('gear')+'</button><button class="icon-btn" data-act="export" aria-label="ส่งออก">'+ic('share')+'</button>')
+  +'<div class="large"><input class="namefield" id="s-name" value="'+esc(f.name)+'" maxlength="100" aria-label="ชื่อฟอนต์"'+(ro?' readonly':'')+'><p>'+esc(c.name)+' · ช่อง '+f.w+'×'+f.h+' · '+f.bpp+' บิต · '+f.glyphs.length+' ตัวอักษร</p>'+(ro?'':'<p class="saved ok" id="s-saved">'+esc(savedText())+'</p>')+'</div>'
   +'<div class="studio"><div style="display:grid;gap:12px;min-width:0">'
   +(ro?'<div class="banner">'+ic('lock')+'<span>ฟอนต์ในตัว เปิดดูได้อย่างเดียว</span><button class="btn small" data-act="dup-edit">ทำสำเนาเพื่อแก้ไข</button></div>':'')
   +'<div class="panel"><h2>วาด · <span id="s-glyph"></span></h2><div class="stage"><canvas id="edit" aria-label="กริดวาดพิกเซล"></canvas></div>'
@@ -687,7 +702,7 @@ function mountStudio(){
   +'<div class="opsrow">'+[['left','shift-l','เลื่อนซ้าย'],['right','shift-r','เลื่อนขวา'],['up','shift-u','เลื่อนขึ้น'],['down','shift-d','เลื่อนลง'],['fliph','flip-h','พลิกแนวนอน'],['flipv','flip-v','พลิกแนวตั้ง'],['copy','copy','คัดลอก'],['paste','paste','วาง'],['clear','clear','ล้างอักษร']].map(([i,a,l])=>'<button class="icon-btn" data-op="'+a+'" aria-label="'+l+'" title="'+l+'">'+ic(i)+'</button>').join('')+'</div>'
   +'<div class="legend" id="s-legend">'+(Core.tooShort(f.h)?'':Core.zonesFor(f.h).map(z=>'<span><i style="background:'+z.color+'"></i>'+esc(z.name)+' · แถว '+z.rows[0]+'–'+z.rows[1]+'</span>').join('')+'<span><i style="background:#ff3b30"></i>แถวที่ห้ามใช้สำหรับตัวนี้</span>')+'</div><div class="advance"><label for="s-adv" style="font-size:15px;color:var(--label2)">ระยะอักษร</label><input id="s-adv" type="range" min="0" max="'+f.w+'" aria-label="ระยะอักษร"><b id="s-advv" style="min-width:48px;text-align:right"></b></div></div>'
   +'<div class="panel"><h2>ตัวอย่างข้อความ</h2><textarea class="preview-text" id="s-text" aria-label="ข้อความตัวอย่าง" placeholder="พิมพ์ข้อความเพื่อดูฟอนต์">'+esc(S.previewText||sampleOf(f))+'</textarea><div class="preview-box" id="s-prev-box" style="background:'+c.colors[0]+'"><canvas id="s-prev"></canvas></div></div></div>'
-  +'<div class="panel"><h2>อักษรทั้งหมด</h2><label class="search" style="margin:0 0 10px">'+ic('search')+'<input id="s-find" type="search" placeholder="ค้นหาอักษร" aria-label="ค้นหาอักษร"></label><div class="glyphs" id="s-glyphs" role="group" aria-label="รายการอักษร"></div>'+'<button class="btn tint block" data-act="shadow" style="margin-top:10px">เพิ่ม / ลบเงา</button><button class="btn tint block" data-act="check-all" style="margin-top:8px">'+ic('ruler')+' ตรวจเกินเขตทั้งฟอนต์</button>'+(ro?'':'<button class="btn tint block" data-act="add-glyph" style="margin-top:8px">'+ic('plus')+' เพิ่มอักษร</button>')+'</div></div>';
+  +'<div class="panel"><h2>อักษรทั้งหมด</h2><label class="search" style="margin:0 0 10px">'+ic('search')+'<input id="s-find" type="search" placeholder="ค้นหาอักษร" aria-label="ค้นหาอักษร"></label><div class="glyphs" id="s-glyphs" role="group" aria-label="รายการอักษร"></div>'+'<button class="btn tint block" data-act="shadow" style="margin-top:10px">เพิ่ม / ลบเงา</button><button class="btn tint block" data-act="spacing" style="margin-top:8px">จัดระยะอักษรอัตโนมัติ</button><button class="btn tint block" data-act="check-all" style="margin-top:8px">'+ic('ruler')+' ตรวจเกินเขตทั้งฟอนต์</button>'+(ro?'':'<button class="btn tint block" data-act="add-glyph" style="margin-top:8px">'+ic('plus')+' เพิ่มอักษร</button>')+'</div></div>';
  const cv=$('#edit',el);edit={cv,ctx:cv.getContext('2d')};
  buildGlyphList();selectGlyph(Math.min(S.idx,f.glyphs.length-1),true);bindEditor(f);updateHistoryButtons();
 }
@@ -799,19 +814,35 @@ function settingsSheet(){const f=editable();if(!f)return guardEdit();
   s.addEventListener('click',e=>{const b=e.target.closest('[data-cell]');if(b){[w.value,h.value]=b.dataset.cell.split(',');}});
   $('#st-ok',s).onclick=()=>{const nw=+w.value,nh=+h.value;if(!Number.isInteger(nw)||!Number.isInteger(nh)||nw<1||nh<1||nw>64||nh>64)return toast('ขนาดต้องเป็นจำนวนเต็ม 1–64');
    const next=Core.convertProject(f,{console:con.value,w:nw,h:nh,bpp:+bpp.value});S.fonts.set(f.id,next);Store.put(next).catch(()=>{});S.undo=[];S.redo=[];S.idx=Math.min(S.idx,next.glyphs.length-1);scheduleSync();closeSheet();mountStudio();toast('อัปเดตขนาดเป็น '+nw+'×'+nh+' แล้ว');};});}
+function spacingSheet(){const f=editable();if(!f)return guardEdit();let gap=1,scope='one';
+ sheet('<h2>จัดระยะอักษรอัตโนมัติ</h2><p class="sub">ตั้งระยะอักษร = ขอบขวาของหมึก + ช่องว่างที่เลือก ช่วยให้ตัวอักษรไม่ห่างเกินไปเมื่อเกมใช้ความกว้างตามตัวอักษร</p>'
+  +'<div class="field"><span>ช่องว่างหลังตัวอักษร</span><div class="seg" id="sp-gap"><button data-g="0" aria-pressed="false">0 px</button><button data-g="1" aria-pressed="true">1 px</button><button data-g="2" aria-pressed="false">2 px</button></div></div>'
+  +'<div class="field"><span>ใช้กับ</span><div class="seg" id="sp-scope"><button data-s="one" aria-pressed="true">อักษรนี้</button><button data-s="all" aria-pressed="false">ทั้งฟอนต์</button></div></div>'
+  +'<div class="check" id="sp-info" role="status"></div><div class="preview-box" id="sp-box" style="background:'+pal(f)[0]+';margin:8px 0 12px"><canvas id="sp-cv"></canvas></div>'
+  +'<p class="foot" style="margin:0 4px 12px">ระยะนี้ใช้ในช่องตัวอย่างและไฟล์ <b>-widths.bin</b> ที่ส่งออกได้ ส่วนไฟล์ไทล์ .bin ไม่มีระยะ เกมจะใช้ตารางความกว้างของตัวเอง ถ้าเกมเป็นแบบกว้างคงที่ ระยะจะเป็นไปตามเกม</p><button class="btn block" id="sp-go">จัดระยะ</button>',s=>{
+  const targets=()=>scope==='all'?f.glyphs.map((g,i)=>i):[S.idx];
+  const sample=()=>S.previewText||sampleOf(f);
+  const refresh=()=>{let n=0,sum=0,cnt=0;for(const i of targets()){const r=Core.autoSpacing(f,f.glyphs[i],gap);if(r.changed){n++;sum+=r.a-f.glyphs[i].a;}cnt++;}
+   $('#sp-info',s).textContent=n?'จะเปลี่ยน '+n+' จาก '+cnt+' อักษร · เฉลี่ย '+(sum/n).toFixed(1)+' px ต่อตัว':'ไม่มีอะไรเปลี่ยน (ระยะพอดีอยู่แล้ว)';$('#sp-go',s).disabled=!n;
+   const preview={...f,glyphs:f.glyphs.map((g,i)=>targets().includes(i)?{...g,a:Core.autoSpacing(f,g,gap).a}:g)};drawText($('#sp-cv',s),preview,sample(),3,Math.max(120,($('#sp-box',s).clientWidth||300)-16));};
+  $('#sp-gap',s).onclick=e=>{const b=e.target.closest('[data-g]');if(!b)return;gap=+b.dataset.g;$$('#sp-gap button',s).forEach(x=>x.setAttribute('aria-pressed',x===b));refresh();};
+  $('#sp-scope',s).onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;scope=b.dataset.s;$$('#sp-scope button',s).forEach(x=>x.setAttribute('aria-pressed',x===b));refresh();};
+  $('#sp-go',s).onclick=()=>{const ch=[];for(const i of targets()){const g=f.glyphs[i],r=Core.autoSpacing(f,g,gap);if(r.changed)ch.push({i,p:g.p,a:r.a});}applyMany(ch);closeSheet();toast('จัดระยะให้ '+ch.length+' อักษรแล้ว · ย้อนกลับได้');};
+  refresh();});}
 function addGlyphSheet(){if(!guardEdit())return;
  sheet('<h2>เพิ่มอักษร</h2><p class="sub">พิมพ์หลายตัวติดกันได้ หรือคั่นด้วยเว้นวรรคเพื่อเพิ่มเป็นกลุ่ม เช่น <b>กิ ก่ ก้</b> (อักษรผสมใช้ภาพเดียวทั้งกลุ่ม)</p><div class="field"><input id="ag" class="input" aria-label="อักษรที่จะเพิ่ม" autofocus></div><button class="btn block" id="ag-ok">เพิ่ม</button>',s=>{
   $('#ag-ok',s).onclick=()=>{const f=editable(),raw=$('#ag',s).value.trim(),tokens=/\s/.test(raw)?raw.split(/\s+/):[...raw];let n=0;
    for(const t of tokens){if(!t||[...t].length>8||f.glyphs.some(g=>g.c===t)||f.glyphs.length>=2048)continue;f.glyphs.push({c:t,p:Core.blank(f.w,f.h),a:f.w});n++;}
    if(!n)return toast('ไม่มีอักษรใหม่ที่เพิ่มได้ (ซ้ำหรือว่าง)');touch(f);closeSheet();S.idx=f.glyphs.length-1;mountStudio();toast('เพิ่ม '+n+' อักษร');};});}
 function exportSheet(){const f=S.fonts.get(S.cur);if(!f)return;const c=Core.consoleOf(f.console),n=slug(f.name);
- sheet('<h2>ส่งออก</h2><p class="sub">'+esc(f.name)+' · '+c.name+'</p><div class="actions">'+action('โปรเจกต์ FontLab (.fontlab.json)','json')+action('PNG sheet ('+Core.sheetSize(f).width+'×'+Core.sheetSize(f).height+')','png')+action('ไบนารีไทล์ '+f.bpp+' บิต (.bin)','bin')+action('สเปกและออฟเซ็ต (README.txt)','readme')+action('ทั้งหมดเป็น .zip','zip')+'</div><div class="actions">'+action('นำเข้า PNG sheet ทับฟอนต์นี้','imp-png',f.builtin?'off':'')+action('นำเข้า .bin ทับฟอนต์นี้','imp-bin',f.builtin?'off':'')+'</div><button class="btn gray block" data-close>ปิด</button>',s=>{
+ sheet('<h2>ส่งออก</h2><p class="sub">'+esc(f.name)+' · '+c.name+'</p><div class="actions">'+action('โปรเจกต์ FontLab (.fontlab.json)','json')+action('PNG sheet ('+Core.sheetSize(f).width+'×'+Core.sheetSize(f).height+')','png')+action('ไบนารีไทล์ '+f.bpp+' บิต (.bin)','bin')+action('ตารางระยะอักษร ('+f.glyphs.length+' ไบต์ -widths.bin)','widths')+action('สเปกและออฟเซ็ต (README.txt)','readme')+action('ทั้งหมดเป็น .zip','zip')+'</div><div class="actions">'+action('นำเข้า PNG sheet ทับฟอนต์นี้','imp-png',f.builtin?'off':'')+action('นำเข้า .bin ทับฟอนต์นี้','imp-bin',f.builtin?'off':'')+'</div><button class="btn gray block" data-close>ปิด</button>',s=>{
   s.addEventListener('click',async e=>{const a=e.target.closest('[data-act]')?.dataset.act;if(!a)return;
    try{if(a==='json')download(n+'.fontlab.json',JSON.stringify(f),'application/json');
     else if(a==='png')download(n+'-sheet.png',new Blob([await pngBytes(f,false)],{type:'image/png'}));
     else if(a==='bin')download(n+'-'+f.console+'-'+f.bpp+'bpp.bin',new Blob([Core.exportBank(f)]));
+    else if(a==='widths')download(n+'-widths.bin',new Blob([Core.widthsBank(f)]));
     else if(a==='readme')download(n+'-README.txt',Core.readme(f),'text/plain');
-    else if(a==='zip'){const enc=new TextEncoder();download(n+'.zip',Core.zip([{name:n+'.fontlab.json',data:enc.encode(JSON.stringify(f))},{name:n+'-sheet.png',data:await pngBytes(f,false)},{name:n+'-'+f.console+'.bin',data:Core.exportBank(f)},{name:n+'-README.txt',data:enc.encode(Core.readme(f))}]),'application/zip');}
+    else if(a==='zip'){const enc=new TextEncoder();download(n+'.zip',Core.zip([{name:n+'.fontlab.json',data:enc.encode(JSON.stringify(f))},{name:n+'-sheet.png',data:await pngBytes(f,false)},{name:n+'-'+f.console+'.bin',data:Core.exportBank(f)},{name:n+'-widths.bin',data:Core.widthsBank(f)},{name:n+'-README.txt',data:enc.encode(Core.readme(f))}]),'application/zip');}
     else if(a==='imp-png'){closeSheet();pickFiles('image/png');}else if(a==='imp-bin'){closeSheet();pickFiles('.bin,application/octet-stream');}
     if(!a.startsWith('imp'))toast('ส่งออกแล้ว');}catch(err){toast('ส่งออกไม่สำเร็จ: '+err.message);}});});}
 
@@ -849,7 +880,7 @@ document.addEventListener('click',e=>{const t=e.target;
  const a=t.closest('[data-act]')?.dataset.act;if(!a||t.closest('.sheet'))return;
  if(a==='theme'){applyTheme(isDark()?'light':'dark',true);return;}
  if(a==='new')newFontSheet();else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
- else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='shadow')shadowSheet();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;drawEditor();}
+ else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='shadow')shadowSheet();else if(a==='spacing')spacingSheet();else if(a==='save')saveNow();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;drawEditor();}
  else if(a==='dup-edit'){const f=S.fonts.get(S.cur),d=duplicate(f);addFont(d).then(()=>{openStudio(d.id);toast('ทำสำเนาแล้ว แก้ไขได้เลย');});}
  else if(a==='cloud')cloudSheet();});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.query=e.target.value;renderLibrary();}});

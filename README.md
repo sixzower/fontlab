@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.28** Visible save: a “บันทึก” button and a live “saved locally / on the cloud” line in the studio. Auto spacing (advance = ink right edge + gap) for one glyph or the font, one undo step. Exports a `-widths.bin` advance table (also in the zip) and an ADV column in the README.
 - **1.0.27** Shadow sheet can also remove every shadow pixel (current glyph or whole font, one undo step).
 - **1.0.26** Automatic shadow (studio → “เพิ่มเงาอัตโนมัติ”): casts index-2 shadow pixels from the ink in one of four directions, for one glyph or the whole font, never over existing pixels or outside the cell; widens the advance when a shadow lands past it; one undo step.
 - **1.0.25** Full-width layout; the page checks `version.json` on load and moves itself to a newer version (no more Ctrl+Shift+R); leftovers of the old app's service worker and caches are removed; assets carry `?v=<version>`.
