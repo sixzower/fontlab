@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.55** Studio keyboard shortcuts: Ctrl/Cmd+Z / Y / Shift+Z (undo, redo), C / X / V (copy, cut, paste glyph), S (save); arrow keys shift the glyph by one pixel (when the grid is focused by keyboard they still move the drawing cursor); P / E / F / I tools, 1–4 colours, H / V flip, Delete clears the glyph, [ ] or PageUp / PageDown previous / next glyph, G grid, ? lists them.
 - **1.0.54** Studio: the second row of buttons under the colours is merged into the toolbar above the canvas (move ←→↑↓, flip, copy, paste now sit next to the display toggles). “Clear glyph” uses a trash icon instead of the plain X and sits right after the eraser.
 - **1.0.53** Removed the “คืนฟอนต์ตั้งต้นที่ลบไป” button from the library; a deleted starter font stays deleted (a modified one can still be reset from its ⋯ menu).
 - **1.0.52** Studio: Ctrl/Cmd+click picks several characters in the character list (ticked thumbnails and a “เลือก N อักษร” bar with “ลบที่เลือก” and “ยกเลิก”; the glyph being edited counts as the first pick, once a selection is open a plain click toggles too, Esc clears it). One confirmation deletes them all and the delete is undoable.
