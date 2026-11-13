@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.48** Smaller status dot on the cloud icon (6 px, 7 px in the sidebar/sheets) with a proportionally smaller glow.
 - **1.0.47** The status light has no dark ring around it, only the glow.
 - **1.0.46** The cloud status light is a neon glow with a slow pulse (green saved, orange pending/syncing, red error); grey stays still.
 - **1.0.45** Removed the version text from the sidebar footer (the version is in Settings → About).
