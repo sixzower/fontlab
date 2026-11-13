@@ -108,8 +108,8 @@ const savedText=()=>S.save==='saving'?'กำลังบันทึก…':'�
 function refreshSaved(){const el=$('#s-saved');if(el){el.textContent=savedText();el.className='saved '+(S.save==='saving'?'busy':S.cloud.state==='err'?'err':'ok');}}
 function touch(f){f.updatedAt=Date.now();S.save='saving';refreshSaved();clearTimeout(saveTimers.get(f.id));saveTimers.set(f.id,setTimeout(()=>Store.put(f).then(()=>{S.save='done';refreshSaved();}).catch(()=>toast('บันทึกในเครื่องไม่สำเร็จ')),400));scheduleSync();}
 function moreSheet(){const f=S.fonts.get(S.cur);if(!f)return;
- sheet('<h2>'+esc(f.name)+'</h2><p class="sub">เมนูเพิ่มเติม</p><div class="actions">'+action('ตั้งค่าฟอนต์ (เครื่อง · ขนาดช่อง · ความลึกสี)','m-settings')+action('ส่งออก…','m-export')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
-  s.addEventListener('click',e=>{const a=e.target.closest('[data-act]')?.dataset.act;if(!a)return;closeSheet();if(a==='m-settings')settingsSheet();else if(a==='m-export')exportSheet();});});}
+ sheet('<h2>'+esc(f.name)+'</h2><p class="sub">เมนูเพิ่มเติม</p><div class="actions">'+action('ตั้งค่าฟอนต์ (เครื่อง · ขนาดช่อง · ความลึกสี)','m-settings')+action('ส่งออก…','m-export')+action('ปุ่มลัดแป้นพิมพ์','m-keys')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
+  s.addEventListener('click',e=>{const a=e.target.closest('[data-act]')?.dataset.act;if(!a)return;closeSheet();if(a==='m-settings')settingsSheet();else if(a==='m-export')exportSheet();else if(a==='m-keys')shortcutsSheet();});});}
 function saveNewSheet(){const f=editable();if(!f)return guardEdit();
  sheet('<h2>เพิ่มเป็นฟอนต์ใหม่</h2><p class="sub">สร้างฟอนต์ใหม่จากสภาพปัจจุบัน โดยไม่บันทึกทับฟอนต์เดิม</p>'
   +'<div class="field"><label for="sn-name">ชื่อฟอนต์ใหม่</label><input id="sn-name" class="input" maxlength="100" value="'+esc((f.name+' (ใหม่)').slice(0,100))+'" autofocus></div>'
@@ -639,7 +639,7 @@ function shortcutsSheet(){sheet('<h2>ปุ่มลัดในสตูดิ�
 document.addEventListener('keydown',e=>{
  if(e.key==='Enter'&&e.target.matches?.('.card')){openStudio(e.target.dataset.open);return;}
  if(S.tab!=='studio'||e.defaultPrevented||document.querySelector('.sheet')||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')||document.activeElement?.isContentEditable)return;
- const k=e.key,K=k.length===1?k.toLowerCase():k,mod=e.ctrlKey||e.metaKey,f=S.fonts.get(S.cur);if(!f)return;
+ const c=e.code||'',k=c==='BracketLeft'?'[':c==='BracketRight'?']':(c==='Slash'&&e.shiftKey)?'?':e.key,K=/^Key[A-Z]$/.test(c)?c[3].toLowerCase():/^Digit[1-4]$/.test(c)?c[5]:(k.length===1?k.toLowerCase():k),mod=e.ctrlKey||e.metaKey,f=S.fonts.get(S.cur);if(!f)return;
  if(mod&&!e.altKey){
   if(K==='z'){e.preventDefault();stepHistory(e.shiftKey?1:-1);}else if(K==='y'){e.preventDefault();stepHistory(1);}
   else if(K==='c'){e.preventDefault();transform('copy');}
