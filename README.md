@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.51** “เพิ่มอักษร” sheet: button “เติม A–Z a–z 0–9 ให้เข้ากับฟอนต์อัตโนมัติ” fills only the missing Latin letters and digits, aligned to the font's Thai baseline, with the same shadow direction when the font has a shadow, and spacing set from the ink edge (undoable).
 - **1.0.50** “เพิ่มอักษร” sheet: quick chips for A–Z, a–z, 0–9 and punctuation, with a switch (on by default) that fills each new glyph with the pixels of the bundled public-domain 8×16 font (resized to the font's cell, editable afterwards); off gives blank glyphs. Works for every font, including the four older built-ins that had no Latin letters.
 - **1.0.49** New built-in starter font “ไทยพิกเซล · Manop 8×16” (179 glyphs: 44 consonants, vowels and tone marks, Thai and Arabic digits, ASCII; one colour, no shadow; for every 8×16 console: GB, GBC, WS, NES, SNES, GG, SMS, MD, MCD, PCE, NGP, 2600). Based on the public-domain `manop/thai8x16.bdf` from TLWG thaixfonts (Manop Wongsaisuwan), moved to fit 16 rows (body rows 6–13). The checker now allows leading vowels and digits down to row 13 (was 12).
 - **1.0.48** Smaller status dot on the cloud icon (6 px, 7 px in the sidebar/sheets) with a proportionally smaller glow.
