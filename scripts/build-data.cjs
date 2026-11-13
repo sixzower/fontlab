@@ -34,4 +34,11 @@ for(const c of Core.CONSOLES){
  index.push({console:c.id,files:Object.keys(files)});
 }
 write(path.join(root,'starters/index.json'),JSON.stringify(index,null,1)+'\n');
+/* cache busting: version.json + ?v=<version> on local assets + <meta name="app-version"> in index.html */
+const version=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
+fs.writeFileSync(path.join(root,'version.json'),JSON.stringify({version})+'\n');
+let page=fs.readFileSync(path.join(root,'index.html'),'utf8');
+page=page.replace(/(src|href)="((?:src|data)\/[^"?]+\.(?:js|css))(?:\?v=[^"]*)?"/g,'$1="$2?v='+version+'"');
+page=/<meta name="app-version"/.test(page)?page.replace(/<meta name="app-version" content="[^"]*">/,'<meta name="app-version" content="'+version+'">'):page.replace('<title>','<meta name="app-version" content="'+version+'">\n<title>');
+fs.writeFileSync(path.join(root,'index.html'),page);
 console.log('fonts:',builtins.map(b=>b.id+' '+b.glyphs.length+' '+b.w+'x'+b.h).join(', '),'\nstarters:',index.length,'consoles');
