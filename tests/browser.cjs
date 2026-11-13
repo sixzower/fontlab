@@ -134,6 +134,27 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('#page-studio [data-act=cloud]');await page.click('#cc-auto');await page.keyboard.press('Escape');
  await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=cloud]');await page.fill('#cc-in','xyz');await page.click('#cc-use');assert.ok(await page.locator('.toast.on').count(),'bad code rejected');await page.keyboard.press('Escape');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/cloud.png':undefined});
+ await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ตั้งต้น"))').first().click();await page.waitForSelector('#edit');
+ /* glyph management: rename, move, delete, all undoable */
+ await page.locator('#s-glyphs .gl >> nth=1').click();const names=()=>page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);return f.glyphs.map(g=>g.c);});const n0=(await names()).length,c1=(await names())[1];
+ await page.locator('[data-act=manage]').scrollIntoViewIfNeeded();await page.click('[data-act=manage]');await page.click('[data-act=g-ren]');await page.fill('#rn','Ω');await page.click('#bar-done');
+ assert.strictEqual((await names())[1],'Ω','glyph renamed');await page.click('#u-undo');assert.strictEqual((await names())[1],c1,'undo restores the name');
+ await page.click('[data-act=manage]');await page.click('[data-act=g-up]');assert.strictEqual((await names())[0],c1,'moved earlier');await page.click('#u-undo');assert.strictEqual((await names())[1],c1,'undo restores the order');
+ await page.click('[data-act=manage]');await page.click('[data-act=g-del]');await page.click('[data-act=yes]');assert.strictEqual((await names()).length,n0-1,'glyph deleted');await page.click('#u-undo');assert.strictEqual((await names()).length,n0,'undo restores the glyph');
+ /* keyboard drawing */
+ await page.locator('#edit').scrollIntoViewIfNeeded();await page.focus('#edit');await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowDown');await page.keyboard.press('Space');
+ const px=await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur),g=f.glyphs[S.idx];return g.p[S.ky*f.w+S.kx];});assert.notStrictEqual(px,'0','keyboard drawing painted the cursor cell');
+ /* game text box preview */
+ await page.locator('#s-gamebox').scrollIntoViewIfNeeded();await page.click('#s-gamebox');assert.ok(/กรอบกว้าง \d+ px/.test(await page.locator('#s-gamebox-note').innerText()),'game box preview shows its size');await page.click('#s-gamebox');
+ /* font file import (Prompt, OFL, from the repo) */
+ await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=new]');await page.click('[data-kind=file]');
+ await page.setInputFiles('#nf-file-in',require('path').join(root,'fonts/Prompt-Regular.ttf'));await page.waitForFunction(()=>/Prompt/.test(document.querySelector('#nf-fname')?.textContent||''),null,{timeout:8000});
+ await page.click('#bar-done');await page.waitForSelector('#edit');
+ const rast=await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);const g=f.glyphs.find(x=>x.c==='ก'),h=f.glyphs.find(x=>x.c==='ิ');return [g&&g.p.replace(/0/g,'').length,h&&h.p.replace(/0/g,'').length];});assert.ok(rast[0]>5,'consonant rasterised from the font file');assert.ok(rast[1]>0,'vowel mark rasterised separately');
+ /* big font: the glyph list renders in chunks */
+ await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.fill('#ag',Array.from({length:300},(_,i)=>String.fromCharCode(0x4E00+i)).join(''));await page.click('#bar-done');
+ await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');await page.locator('.card:has-text("พิกเซล")').first().click();await page.waitForSelector('#edit');
+ const chunk=await page.locator('#s-glyphs .gl').count();assert.ok(chunk<=240&&chunk>=200,'first chunk only: '+chunk);await page.locator('.gl-more').scrollIntoViewIfNeeded();await page.waitForFunction(n=>document.querySelectorAll('#s-glyphs .gl').length>n,chunk,{timeout:5000});
  /* desktop layout */
  await page.setViewportSize({width:1280,height:820});await page.click('.tab[data-tab=library]');await page.locator('.card').first().click();await page.waitForSelector('#edit');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/studio-desktop.png':undefined});
