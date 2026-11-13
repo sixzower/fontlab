@@ -1,6 +1,6 @@
 {
   "name": "fontlab",
-  "version": "1.0.40",
+  "version": "1.0.41",
   "private": true,
   "scripts": {
     "dev": "python3 -m http.server 5173 --bind 0.0.0.0",
