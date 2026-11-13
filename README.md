@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.58** Studio: the ⋯ “เมนูเพิ่มเติม” is removed; its items sit directly in the top bar as buttons: font settings, export and the shortcut list (next to save / add as new font).
 - **1.0.57** Studio shortcuts now work on any keyboard layout (they read the physical key, so Ctrl+Z, C, V, X, S and P / E / F / I / H / V / G / 1–4 / [ ] / ? work with the Thai layout too — before, Thai letters in the key value broke them). The ⋯ menu has a “ปุ่มลัดแป้นพิมพ์” entry.
 - **1.0.56** Studio: a keyboard button in the top bar opens the shortcut list (still “?” too), and the hover tooltips of the studio buttons show their key (e.g. ดินสอ (P), ย้อนกลับ (Ctrl+Z)). Tooltips keep short key hints and still drop long Thai explanations.
 - **1.0.55** Studio keyboard shortcuts: Ctrl/Cmd+Z / Y / Shift+Z (undo, redo), C / X / V (copy, cut, paste glyph), S (save); arrow keys shift the glyph by one pixel (when the grid is focused by keyboard they still move the drawing cursor); P / E / F / I tools, 1–4 colours, H / V flip, Delete clears the glyph, [ ] or PageUp / PageDown previous / next glyph, G grid, ? lists them.

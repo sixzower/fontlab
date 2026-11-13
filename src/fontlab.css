@@ -246,3 +246,5 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .selbar .grow{flex:1}
 
 .swatches+.legend{margin-top:18px}
+
+@media(max-width:430px){#page-studio .nav .back span{display:none}}
