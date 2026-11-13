@@ -165,6 +165,16 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-seaglass-th-complete]');await page.waitForSelector('#edit');
  await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.click('#ag-auto');
  assert.ok(await page.evaluate(()=>{const f=FontLabApp.S.fonts.get('builtin-seaglass-th-complete'),b=f.glyphs.find(g=>g.c==='B');return b&&/1/.test(b.p)&&/2/.test(b.p)&&b.a<=f.w;}),'auto-fill gives shadowed letters on a shadow font');
+ /* studio: Ctrl+click several glyphs, delete them with one confirmation */
+ {const n0=await page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length);
+  await page.locator('#s-glyphs .gl[aria-label="อักษร A"]').click();
+  await page.locator('#s-glyphs .gl[aria-label="อักษร B"]').click({modifiers:['Control']});await page.locator('#s-glyphs .gl[aria-label="อักษร C"]').click({modifiers:['Control']});
+  assert.strictEqual(await page.locator('#s-glyphs .gl.sel').count(),3,'three glyphs ticked');assert.ok(/3/.test(await page.locator('#g-seln').innerText()),'selection bar counts them');
+  await page.keyboard.press('Escape');assert.strictEqual(await page.locator('#s-glyphs .gl.sel').count(),0,'Escape clears');
+  await page.locator('#s-glyphs .gl[aria-label="อักษร A"]').click();await page.locator('#s-glyphs .gl[aria-label="อักษร B"]').click({modifiers:['Control']});await page.locator('#s-glyphs .gl[aria-label="อักษร C"]').click({modifiers:['Control']});
+  await page.click('[data-act=gsel-del]');await page.click('[data-act=yes]');
+  await page.waitForFunction(n=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length===n-3,n0,{timeout:5000});
+  assert.ok(await page.evaluate(()=>!FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.some(g=>'ABC'.includes(g.c))),'A B C deleted');}
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');await page.locator('.card:has-text("พิกเซล")').first().click();await page.waitForSelector('#edit');
  const chunk=await page.locator('#s-glyphs .gl').count();assert.ok(chunk<=240&&chunk>=200,'first chunk only: '+chunk);await page.locator('.gl-more').scrollIntoViewIfNeeded();await page.waitForFunction(n=>document.querySelectorAll('#s-glyphs .gl').length>n,chunk,{timeout:5000});
  /* starter fonts: mark any font as a starter in its menu, start a new font from it */

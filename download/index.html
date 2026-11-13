@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="1.0.51">
+<meta name="app-version" content="1.0.52">
 <title>FontLab</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzYTNhM2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwYTBhMGIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNC41IiBmaWxsPSJ1cmwoI2cpIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoNDUgMzIgMjgpIj48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iMzAiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iI2ZmOWYwYSIvPjxwYXRoIGQ9Ik0yOCAzNmg4bC00IDl6IiBmaWxsPSIjZDFkMWQ2Ii8+PHBhdGggZD0iTTMwLjUgNDEuNWgzbC0xLjUgMy41eiIgZmlsbD0iIzFjMWMxZSIvPjwvZz48cmVjdCB4PSIxNCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyMCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyNiIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii41Ii8+PC9zdmc+Cg==">
 <meta name="apple-mobile-web-app-title" content="FontLab">
@@ -251,6 +251,11 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
  50%{opacity:1;box-shadow:0 0 4px 1px var(--glow),0 0 9px 2px var(--glow)}}
 
 .sheet .cdot,.side-status .cdot{width:7px;height:7px}
+
+.gl.sel{outline:3px solid var(--accent);outline-offset:-3px;background:var(--fill)}
+.selbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 12px;border-radius:14px;background:var(--card);box-shadow:var(--shadow);font-weight:600;font-size:14px}
+.selbar[hidden]{display:none}
+.selbar .grow{flex:1}
 </style>
 </head>
 <body>
@@ -631,7 +636,7 @@ function sheet(html,bind){closeSheet();lastFocus=document.activeElement;
  enhanceSelects(s);bind?.(s);(s.querySelector('[autofocus]')||s.querySelector('input,select,textarea')||s.querySelector('.bar-btn.strong')||s.querySelector('button'))?.focus();return s;}
 function closeSheet(){closeSheetFn?.();}
 const action=(label,act,cls='')=>'<button class="row '+cls+'" data-act="'+act+'">'+label+'</button>';
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!document.querySelector('.sheet')&&GSEL.size){GSEL.clear();updateGSel();}closeSheet();}});
 
 /* iOS-style pop-up menu that replaces native <select> (the real select stays in the DOM as the value holder) */
 let openMenu=null;function closeMenu(){openMenu?.();openMenu=null;}
@@ -854,7 +859,7 @@ function pickFiles(accept,opts={}){const i=$('#pick');i.accept=accept;i.value=''
 
 /* ---------- studio ---------- */
 const editable=()=>{const f=S.fonts.get(S.cur);return f&&!f.builtin?f:null;};
-function openStudio(id){pushRecent(id);S.cur=id;S.base=structuredClone(S.fonts.get(id));S.idx=0;S.undo=[];S.redo=[];S.previewText='';go('studio');}
+function openStudio(id){GSEL.clear();pushRecent(id);S.cur=id;S.base=structuredClone(S.fonts.get(id));S.idx=0;S.undo=[];S.redo=[];S.previewText='';go('studio');}
 let edit=null; // {cv,ctx,scale}
 function mountStudio(){
  const el=$('#page-studio'),f=S.fonts.get(S.cur);
@@ -870,7 +875,7 @@ function mountStudio(){
   +'<div class="opsrow">'+[['left','shift-l','เลื่อนซ้าย'],['right','shift-r','เลื่อนขวา'],['up','shift-u','เลื่อนขึ้น'],['down','shift-d','เลื่อนลง'],['fliph','flip-h','พลิกแนวนอน'],['flipv','flip-v','พลิกแนวตั้ง'],['copy','copy','คัดลอก'],['paste','paste','วาง'],['clear','clear','ล้างอักษร']].map(([i,a,l])=>'<button class="icon-btn" data-op="'+a+'" aria-label="'+l+'" title="'+l+'">'+ic(i)+'</button>').join('')+'</div>'
   +'<div class="legend" id="s-legend">'+(Core.tooShort(f.h)?'':Core.zonesFor(f.h).map(z=>'<span><i style="background:'+z.color+'"></i>'+esc(z.name)+' · แถว '+z.rows[0]+'–'+z.rows[1]+'</span>').join('')+'<span><i class="hatch"></i>แถวที่ห้ามใช้สำหรับตัวนี้</span>')+'</div><div class="advance"><label for="s-adv" style="font-size:15px;color:var(--label2)">ระยะอักษร</label><input id="s-adv" type="range" min="0" max="'+f.w+'" aria-label="ระยะอักษร"><b id="s-advv" style="min-width:48px;text-align:right"></b></div></div>'
   +'<div class="panel"><h2>ตัวอย่างข้อความ</h2><textarea class="preview-text" id="s-text" aria-label="ข้อความตัวอย่าง" placeholder="พิมพ์ข้อความเพื่อดูฟอนต์">'+esc(S.previewText||sampleOf(f))+'</textarea><div class="group inset" style="margin:0 0 10px"><div class="row"><span class="grow">จำลองกรอบข้อความเกม<small id="s-gamebox-note">กว้างตามจอของเครื่อง · ตัดบรรทัดอัตโนมัติ</small></span><button class="switch" role="switch" id="s-gamebox" aria-checked="'+S.gameBox+'" aria-label="จำลองกรอบข้อความเกม"></button></div></div><div class="preview-box" id="s-prev-box" style="background:'+c.colors[0]+'"><canvas id="s-prev"></canvas></div></div></div>'
-  +'<div class="panel"><h2>อักษรทั้งหมด</h2><label class="search" style="margin:0 0 10px">'+ic('search')+'<input id="s-find" type="search" placeholder="ค้นหาอักษร" aria-label="ค้นหาอักษร"></label><div class="glyphs" id="s-glyphs" role="group" aria-label="รายการอักษร"></div>'+'<div class="group inset" style="margin-top:12px" role="group" aria-label="เครื่องมือกับอักษร">'
+  +'<div class="panel"><h2>อักษรทั้งหมด</h2><label class="search" style="margin:0 0 10px">'+ic('search')+'<input id="s-find" type="search" placeholder="ค้นหาอักษร" aria-label="ค้นหาอักษร"></label><div class="selbar" id="g-selbar" hidden role="status"><span class="grow" id="g-seln"></span><button class="btn small gray" data-act="gsel-clear">ยกเลิก</button><button class="btn small danger" data-act="gsel-del">ลบที่เลือก</button></div><div class="glyphs" id="s-glyphs" role="group" aria-label="รายการอักษร"></div>'+'<div class="group inset" style="margin-top:12px" role="group" aria-label="เครื่องมือกับอักษร">'
   +[['shadowico','shadow','เพิ่ม / ลบเงา','สร้างหรือลบพิกเซลเงา'],['spacingico','spacing','จัดระยะอักษรอัตโนมัติ','ตั้งระยะตามขอบหมึก'],['ruler','check-all','ตรวจเกินเขตทั้งฟอนต์','หาตัวที่ล้ำโซนหรือระยะอักษร'],['more','manage','จัดการอักษรนี้','เปลี่ยนชื่อ · ย้ายลำดับ · ลบ'],['plus','add-glyph','เพิ่มอักษร','สร้างช่องอักษรใหม่']].map(([i,a,t,d])=>'<button class="row" data-act="'+a+'">'+ic(i,'ico')+'<span class="grow">'+t+'<small>'+d+'</small></span>'+ic('chev','chev')+'</button>').join('')+'</div>'+'</div></div>';
  const cv=$('#edit',el);edit={cv,ctx:cv.getContext('2d')};
  buildGlyphList();selectGlyph(Math.min(S.idx,f.glyphs.length-1),true);bindEditor(f);updateHistoryButtons();
@@ -878,10 +883,20 @@ function mountStudio(){
 const MARK=/^[ัิ-ฺ็-๎]/;
 const glyphLabel=g=>(MARK.test(g.c)?'◌':'')+(g.c===' '?'␠':g.c);
 const GL_CHUNK=240;
+const GSEL=new Set(); /* characters picked in the studio list with Ctrl/Cmd+click, for a bulk delete */
+function updateGSel(){const bar=$('#g-selbar');if(!bar)return;bar.hidden=!GSEL.size;$('#g-seln',bar).textContent='เลือก '+GSEL.size+' อักษร';
+ $$('#s-glyphs .gl').forEach(b=>{const g=(S.fonts.get(S.cur)?.glyphs||[])[+b.dataset.i],on=!!g&&GSEL.has(g.c);b.classList.toggle('sel',on);b.setAttribute('aria-selected',on?'true':'false');});}
+function toggleGSel(i){const f=S.fonts.get(S.cur);if(!f)return;const g=f.glyphs[i];if(!g)return;
+ if(!GSEL.size&&i!==S.idx&&f.glyphs[S.idx])GSEL.add(f.glyphs[S.idx].c); /* the glyph being edited counts as the first pick */
+ if(GSEL.has(g.c))GSEL.delete(g.c);else GSEL.add(g.c);updateGSel();}
+function confirmDeleteGlyphs(){const f=editable();if(!f)return;const list=f.glyphs.filter(g=>GSEL.has(g.c));if(!list.length){GSEL.clear();return updateGSel();}
+ if(list.length>=f.glyphs.length)return toast('ต้องเหลืออย่างน้อย 1 อักษร');
+ sheet('<h2>ลบ '+list.length+' อักษร ?</h2><p class="sub">'+list.slice(0,16).map(g=>esc(glyphLabel(g))).join(' ')+(list.length>16?' และอีก '+(list.length-16)+' ตัว':'')+'<br>ย้อนกลับได้ด้วยปุ่มย้อนกลับ</p><div class="actions">'+action('ลบ '+list.length+' อักษร','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
+  $('[data-act=yes]',s).onclick=()=>{closeSheet();const n=list.length;if(structChange(f=>{f.glyphs=f.glyphs.filter(g=>!GSEL.has(g.c));S.idx=Math.max(0,Math.min(S.idx,f.glyphs.length-1));}))toast('ลบ '+n+' อักษรแล้ว · ย้อนกลับได้');GSEL.clear();updateGSel();};});}
 function buildGlyphList(){const f=S.fonts.get(S.cur),box=$('#s-glyphs'),q=($('#s-find')?.value||'').trim();if(!f||!box)return;box.innerHTML='';
  const list=[];f.glyphs.forEach((g,i)=>{if(!q||g.c.includes(q))list.push(i);});S.glList=list;S.glRendered=0;renderGlyphChunk(Math.max(GL_CHUNK,list.indexOf(S.idx)+1));}
 function renderGlyphChunk(upto){const f=S.fonts.get(S.cur),box=$('#s-glyphs');if(!f||!box)return;box.querySelector('.gl-more')?.remove();const colors=pal(f),sc=Math.max(1,Math.floor(32/f.h)),list=S.glList||[];
- for(;S.glRendered<Math.min(upto,list.length);S.glRendered++){const i=list[S.glRendered],g=f.glyphs[i];const b=document.createElement('button');b.className='gl';b.dataset.i=i;b.setAttribute('aria-pressed',i===S.idx);b.setAttribute('aria-label','อักษร '+g.c);
+ for(;S.glRendered<Math.min(upto,list.length);S.glRendered++){const i=list[S.glRendered],g=f.glyphs[i];const b=document.createElement('button');b.className='gl'+(GSEL.has(g.c)?' sel':'');b.dataset.i=i;b.setAttribute('aria-pressed',i===S.idx);b.setAttribute('aria-label','อักษร '+g.c);
   const cv=document.createElement('canvas');cv.width=f.w*sc;cv.height=f.h*sc;const cx=cv.getContext('2d');cx.fillStyle=colors[0];cx.fillRect(0,0,cv.width,cv.height);drawGlyph(cx,f,g,0,0,sc,colors);
   const sp=document.createElement('span');sp.textContent=glyphLabel(g);b.append(cv,sp);box.append(b);}
  if(S.glRendered<list.length){const more=document.createElement('div');more.className='gl-more';more.textContent='กำลังโหลดอักษรเพิ่ม…';box.append(more);
@@ -1160,11 +1175,11 @@ document.addEventListener('click',e=>{const t=e.target;
  const tool=t.closest('[data-tool]');if(tool){S.tool=tool.dataset.tool;return $$('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b===tool));}
  const col=t.closest('[data-color]');if(col){S.color=+col.dataset.color;S.tool=S.tool==='eraser'?'pencil':S.tool;$$('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===S.tool));return $$('[data-color]').forEach(b=>b.setAttribute('aria-pressed',b===col));}
  const op=t.closest('[data-op]');if(op)return transform(op.dataset.op);
- const gl=t.closest('.gl');if(gl)return selectGlyph(+gl.dataset.i);
+ const gl=t.closest('.gl');if(gl){if(e.ctrlKey||e.metaKey||GSEL.size)return toggleGSel(+gl.dataset.i);return selectGlyph(+gl.dataset.i);}
  const a=t.closest('[data-act]')?.dataset.act;if(!a||t.closest('.sheet'))return;
  if(a==='theme'){applyTheme(isDark()?'light':'dark',true);return;}
  if(a==='new')newFontSheet();else if(a==='restore-seeds')restoreSeeds();else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
- else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='shadow')shadowSheet();else if(a==='spacing')spacingSheet();else if(a==='save')saveNow();else if(a==='save-new')saveNewSheet();else if(a==='more')moreSheet();else if(a==='manage')glyphMenu();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='labels'){S.labels=!S.labels;if(S.labels)S.guides=true;try{localStorage.setItem('fontlab.zoneLabels',S.labels?'yes':'no');}catch{}$$('[data-act=labels]').forEach(b=>b.setAttribute('aria-pressed',S.labels));$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;$$('[data-act=grid]').forEach(b=>b.setAttribute('aria-pressed',S.grid));drawEditor();}
+ else if(a==='gsel-clear'){GSEL.clear();updateGSel();}else if(a==='gsel-del')confirmDeleteGlyphs();else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='shadow')shadowSheet();else if(a==='spacing')spacingSheet();else if(a==='save')saveNow();else if(a==='save-new')saveNewSheet();else if(a==='more')moreSheet();else if(a==='manage')glyphMenu();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='labels'){S.labels=!S.labels;if(S.labels)S.guides=true;try{localStorage.setItem('fontlab.zoneLabels',S.labels?'yes':'no');}catch{}$$('[data-act=labels]').forEach(b=>b.setAttribute('aria-pressed',S.labels));$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;$$('[data-act=grid]').forEach(b=>b.setAttribute('aria-pressed',S.grid));drawEditor();}
  else if(a==='dup-edit'){const f=S.fonts.get(S.cur),d=duplicate(f);addFont(d).then(()=>{openStudio(d.id);toast('ทำสำเนาแล้ว แก้ไขได้เลย');});}
  else if(a==='cloud')cloudSheet();});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.query=e.target.value;renderLibrary();}});

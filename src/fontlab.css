@@ -239,3 +239,8 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
  50%{opacity:1;box-shadow:0 0 4px 1px var(--glow),0 0 9px 2px var(--glow)}}
 
 .sheet .cdot,.side-status .cdot{width:7px;height:7px}
+
+.gl.sel{outline:3px solid var(--accent);outline-offset:-3px;background:var(--fill)}
+.selbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 12px;border-radius:14px;background:var(--card);box-shadow:var(--shadow);font-weight:600;font-size:14px}
+.selbar[hidden]{display:none}
+.selbar .grow{flex:1}
