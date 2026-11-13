@@ -5,7 +5,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
 (async()=>{
  await new Promise(r=>server.listen(0,r));const base='http://127.0.0.1:'+server.address().port+'/index.html';
  const browser=await chromium.launch(),errors=[];
- const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,acceptDownloads:true}),page=await ctx.newPage();
+ const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,acceptDownloads:true,serviceWorkers:'block'}),page=await ctx.newPage();
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  /* mock Supabase: backup vaults (RPC) in memory, keyed by backup code */
  const vaults=new Map();let calls=[];
@@ -114,7 +114,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  /* status sheet shows the code, a second device can use it */
  await page.click('#page-studio [data-act=cloud]');assert.ok(/••••/.test(await page.locator('#cc-code').innerText()),'code masked');assert.strictEqual(await page.locator('#cc-auto').getAttribute('aria-checked'),'false','auto upload is off by default');
  await page.click('#cc-show');assert.strictEqual(await page.locator('#cc-code').innerText(),code);await page.keyboard.press('Escape');
- const ctx2=await browser.newContext({viewport:{width:390,height:844}});await ctx2.route('https://*.supabase.co/**',handler);const page2=await ctx2.newPage();page2.on('pageerror',e=>errors.push(e.message));await page2.goto(base);await page2.waitForSelector('.card');
+ const ctx2=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});await ctx2.route('https://*.supabase.co/**',handler);const page2=await ctx2.newPage();page2.on('pageerror',e=>errors.push(e.message));await page2.goto(base);await page2.waitForSelector('.card');
  assert.notStrictEqual(await page2.evaluate(()=>localStorage.getItem('fontlab.code.v2')),code);
  await page2.click('#page-library [data-act=cloud]');await page2.fill('#cc-in',code);await page2.click('#cc-use');
  await page2.waitForFunction(()=>[...document.querySelectorAll('.card')].filter(c=>!/ตั้งต้น/.test(c.innerText)).length===2,null,{timeout:8000});
@@ -155,6 +155,12 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.fill('#ag',Array.from({length:300},(_,i)=>String.fromCharCode(0x4E00+i)).join(''));await page.click('#bar-done');
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');await page.locator('.card:has-text("พิกเซล")').first().click();await page.waitForSelector('#edit');
  const chunk=await page.locator('#s-glyphs .gl').count();assert.ok(chunk<=240&&chunk>=200,'first chunk only: '+chunk);await page.locator('.gl-more').scrollIntoViewIfNeeded();await page.waitForFunction(n=>document.querySelectorAll('#s-glyphs .gl').length>n,chunk,{timeout:5000});
+ /* offline: with the service worker installed the app still opens without a network */
+ {const octx=await browser.newContext({viewport:{width:390,height:844}}),op=await octx.newPage();await op.goto(base);await op.waitForSelector('.card');
+  await op.evaluate(()=>navigator.serviceWorker.ready);await op.waitForFunction(()=>navigator.serviceWorker.controller,null,{timeout:8000});await op.reload();await op.waitForSelector('.card');
+  const cached=await op.evaluate(async()=>(await caches.keys()).filter(k=>k.startsWith('fontlab-offline-')).length);assert.strictEqual(cached,1,'offline cache exists');
+  await octx.setOffline(true);await op.goto(base);await op.waitForSelector('.card',{timeout:8000});assert.strictEqual(await op.locator('.card').count(),4,'app opens offline with its starter fonts');
+  await op.click('[data-open=builtin-quetzal-classic]');await op.waitForSelector('#edit',{timeout:5000});await octx.setOffline(false);await octx.close();}
  /* desktop layout */
  await page.setViewportSize({width:1280,height:820});await page.click('.tab[data-tab=library]');await page.locator('.card').first().click();await page.waitForSelector('#edit');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/studio-desktop.png':undefined});

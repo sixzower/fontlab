@@ -590,7 +590,9 @@ addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(TABS.some(x
 })();
 /* ---------- freshness: drop leftovers of the old app, load a newer version by itself ---------- */
 (async()=>{
- try{for(const r of await navigator.serviceWorker?.getRegistrations?.()||[])r.unregister();if(window.caches)for(const k of await caches.keys())caches.delete(k);}catch{}
+ /* drop leftovers of the removed app (other service workers / caches), keep ours, then register the offline worker */
+ try{for(const r of await navigator.serviceWorker?.getRegistrations?.()||[]){const u=(r.active||r.waiting||r.installing)?.scriptURL||'';if(!/\/sw\.js(\?|$)/.test(u))r.unregister();}if(window.caches)for(const k of await caches.keys())if(!k.startsWith('fontlab-offline-'))caches.delete(k);}catch{}
+ try{if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});}catch{}
  try{const cur=document.querySelector('meta[name=app-version]')?.content;if(!cur||location.protocol==='file:')return;
   const res=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!res.ok)return;const v=(await res.json()).version;
   if(v&&v!==cur){const u=new URL(location.href);if(u.searchParams.get('v')!==v){u.searchParams.set('v',v);location.replace(u.href);}}}catch{}
