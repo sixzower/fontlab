@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.47** The status light has no dark ring around it, only the glow.
 - **1.0.46** The cloud status light is a neon glow with a slow pulse (green saved, orange pending/syncing, red error); grey stays still.
 - **1.0.45** Removed the version text from the sidebar footer (the version is in Settings → About).
 - **1.0.44** Shorter cloud messages (“ติดต่อคลาวด์ไม่ได้”, “ยังไม่ได้ติดตั้ง SQL บนคลาวด์”); colour toggle only at the top right (removed from the sidebar footer); on wide screens the top-bar Import / New icons are hidden because the sidebar has them (kept on phones).

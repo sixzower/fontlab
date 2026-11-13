@@ -160,7 +160,7 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .rules{margin:6px 0 12px;padding:0 4px 0 22px;font-size:14px;color:var(--label2);display:grid;gap:5px}.rules b{color:var(--label)}
 
 /* cloud status button */
-.cbtn{position:relative}.cdot{position:absolute;top:9px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--label3);box-shadow:0 0 0 2px var(--bg)}
+.cbtn{position:relative}.cdot{position:absolute;top:9px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--label3)}
 .cdot.ok{background:var(--green)}.cdot.busy{background:var(--orange);animation:pulse 1s ease-in-out infinite}.cdot.err{background:var(--red)}
 @keyframes pulse{50%{opacity:.35}}
 .sheet .cdot{position:static;flex:none;box-shadow:none}
@@ -235,5 +235,5 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .cdot.ok,.cdot.dirty,.cdot.err{animation:neon 3s ease-in-out infinite}
 .cdot.busy{animation:neon 1.4s ease-in-out infinite}
 @keyframes neon{
- 0%,100%{opacity:.5;box-shadow:0 0 0 2px var(--bg),0 0 2px 0 var(--glow)}
- 50%{opacity:1;box-shadow:0 0 0 2px var(--bg),0 0 6px 1px var(--glow),0 0 14px 4px var(--glow)}}
+ 0%,100%{opacity:.5;box-shadow:0 0 2px 0 var(--glow)}
+ 50%{opacity:1;box-shadow:0 0 6px 1px var(--glow),0 0 14px 4px var(--glow)}}
