@@ -180,6 +180,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  /* sidebar extras + settings page (1280 px viewport) */
  await page.click('.tab[data-tab=library]');
  assert.ok(await page.locator('.side-sec [data-recent]').count()>=1,'recent fonts are listed in the sidebar');assert.strictEqual(await page.locator('.side-ver').count(),0,'no version text in the sidebar (it lives in Settings → About)');assert.ok((await page.locator('[data-cloud-text]').first().innerText()).length>3,'sidebar shows the cloud status');
+ {const neon=await page.evaluate(()=>{const d=document.querySelector('.side-status .cdot'),c=getComputedStyle(d);return{name:c.animationName,dur:parseFloat(c.animationDuration)};});assert.ok(neon.name==='neon'&&neon.dur>=1,'status light glows with a slow neon pulse: '+JSON.stringify(neon));}
  await page.locator('[data-sidefilter]').first().click();assert.strictEqual(await page.evaluate(()=>FontLabApp.S.tab),'library');assert.ok(await page.locator('.side-item.on').count()>=1,'console filter highlighted');await page.locator('[data-sidefilter]').first().click();
  assert.ok(!(await page.locator('#page-library [data-act=new]').isVisible()),'no duplicate new-font icon in the top bar on wide screens');assert.strictEqual(await page.locator('.side-foot [data-act=theme]').count(),0,'theme toggle only at the top right');
  await page.locator('.sq[data-act=new]').click();assert.ok(await page.locator('.sheet .bar-title').count(),'quick action opens the new-font sheet');await page.keyboard.press('Escape');
