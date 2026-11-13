@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.42** Removed the separate “เพิ่มฟอนต์ตั้งต้น” row; starters are chosen only through “ตั้งเป็นฟอนต์ตั้งต้น” in a font's ⋯ menu (the starter group shows only when it has fonts).
 - **1.0.41** Any font can become a starter font (card menu “ตั้งเป็นฟอนต์ตั้งต้น” or “เพิ่มฟอนต์ตั้งต้น” to import a `.fontlab.json`); starters are listed in their own group and a new font can start from one (“จากฟอนต์ตั้งต้น”, resized to the chosen console). The explanatory footnote under the starter group was removed.
 - **1.0.40** Offline mode: `sw.js` precaches the app and serves the cache only when the network fails (network-first, always revalidated, so online users never see stale files); Supabase and `version.json` are never intercepted; older `?v=` copies are pruned; leftover workers/caches from the removed app are still cleared.
 - **1.0.39** Missing features: delete / rename / reorder glyphs (one undo step each, also for add); new font from a .ttf/.otf/.woff file (rasterised with the browser text engine, marks isolated from their base letter); game text-box preview (console screen width, wrapping, frame); keyboard drawing (arrows, Space/Enter, Backspace) with a live position announcement; glyph list renders in chunks of 240.
