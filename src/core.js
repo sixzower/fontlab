@@ -140,7 +140,7 @@ function normalize(input){
  const c=consoleOf(input.console),bpp=[1,2,4,8].includes(input.bpp)?input.bpp:c.bpp;
  const name=String(input.name||'ฟอนต์ไม่มีชื่อ').trim().slice(0,100)||'ฟอนต์ไม่มีชื่อ';
  return{format:'fontlab/1',id:/^[A-Za-z0-9_-]{6,64}$/.test(input.id||'')?input.id:uid(),name,console:c.id,w,h,bpp,
-  updatedAt:Number.isFinite(input.updatedAt)?input.updatedAt:Date.now(),...(input.note?{note:String(input.note).slice(0,300)}:{}),...(input.builtin?{builtin:true}:{}),glyphs};
+  updatedAt:Number.isFinite(input.updatedAt)?input.updatedAt:Date.now(),...(input.note?{note:String(input.note).slice(0,300)}:{}),...(input.builtin?{builtin:true}:{}),...(input.starter?{starter:true}:{}),glyphs};
 }
 /* Old RomTranslate fonts: 8x16 rows, optional 16x16 nativePixels (0 clear, 1 ink, 2 shadow) and nativeComposites. */
 function fromLegacy(f){

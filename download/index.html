@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="1.0.40">
+<meta name="app-version" content="1.0.41">
 <title>FontLab</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzYTNhM2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwYTBhMGIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNC41IiBmaWxsPSJ1cmwoI2cpIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoNDUgMzIgMjgpIj48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iMzAiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iI2ZmOWYwYSIvPjxwYXRoIGQ9Ik0yOCAzNmg4bC00IDl6IiBmaWxsPSIjZDFkMWQ2Ii8+PHBhdGggZD0iTTMwLjUgNDEuNWgzbC0xLjUgMy41eiIgZmlsbD0iIzFjMWMxZSIvPjwvZz48cmVjdCB4PSIxNCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyMCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyNiIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii41Ii8+PC9zdmc+Cg==">
 <meta name="apple-mobile-web-app-title" content="FontLab">
@@ -220,6 +220,8 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .gl-more{grid-column:1/-1;text-align:center;color:var(--label2);font-size:13px;padding:10px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #edit:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 28%,transparent);outline-offset:3px}
+
+.seg.grid2x{display:grid;grid-template-columns:1fr 1fr}
 </style>
 </head>
 <body>
@@ -385,7 +387,7 @@ function normalize(input){
  const c=consoleOf(input.console),bpp=[1,2,4,8].includes(input.bpp)?input.bpp:c.bpp;
  const name=String(input.name||'ฟอนต์ไม่มีชื่อ').trim().slice(0,100)||'ฟอนต์ไม่มีชื่อ';
  return{format:'fontlab/1',id:/^[A-Za-z0-9_-]{6,64}$/.test(input.id||'')?input.id:uid(),name,console:c.id,w,h,bpp,
-  updatedAt:Number.isFinite(input.updatedAt)?input.updatedAt:Date.now(),...(input.note?{note:String(input.note).slice(0,300)}:{}),...(input.builtin?{builtin:true}:{}),glyphs};
+  updatedAt:Number.isFinite(input.updatedAt)?input.updatedAt:Date.now(),...(input.note?{note:String(input.note).slice(0,300)}:{}),...(input.builtin?{builtin:true}:{}),...(input.starter?{starter:true}:{}),glyphs};
 }
 /* Old RomTranslate fonts: 8x16 rows, optional 16x16 nativePixels (0 clear, 1 ink, 2 shadow) and nativeComposites. */
 function fromLegacy(f){
@@ -551,6 +553,7 @@ const Store=(()=>{let db=null;const mem=new Map();
 /* ---------- state ---------- */
 const S={gameBox:(()=>{try{return localStorage.getItem('fontlab.gameBox')==='yes';}catch{return false;}})(),kx:0,ky:0,labels:(()=>{try{return localStorage.getItem('fontlab.zoneLabels')==='yes';}catch{return false;}})(),autoCloud:(()=>{try{return localStorage.getItem('fontlab.autoCloud')==='yes';}catch{return false;}})(),save:'done',guides:true,fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloud:{state:'idle',msg:'',last:null,count:0,warned:false,dirty:false}};
 const isSeed=f=>f.id.startsWith('builtin-');
+const isStarter=f=>isSeed(f)||!!f.starter; /* the 4 shipped fonts, or any font the user marked as a starter */
 const seedCopy=b=>{const c=structuredClone(b);delete c.builtin;return c;};
 const delSeedKey='fontlab.seedsDeleted.v1';let memDel=[];
 const deletedSeeds=()=>{try{return JSON.parse(localStorage.getItem(delSeedKey)||'[]');}catch{return memDel;}};
@@ -678,12 +681,12 @@ addEventListener('scroll',()=>$$('.nav').forEach(n=>n.classList.toggle('scrolled
 /* ---------- library ---------- */
 function cardHtml(f){const c=Core.consoleOf(f.console);
  return '<div class="card" role="button" tabindex="0" data-open="'+f.id+'" aria-label="เปิด '+esc(f.name)+'"><div class="prev" style="background:'+c.colors[0]+'"><canvas data-prev="'+f.id+'"></canvas></div><h3>'+esc(f.name)+'</h3>'
- +'<div class="meta"><span class="tag" style="background:'+c.tint+'">'+c.short+'</span><span>'+f.w+'×'+f.h+' · '+f.glyphs.length+' ตัว</span>'+(isSeed(f)?'<span>· ตั้งต้น</span>':'')+'</div>'
+ +'<div class="meta"><span class="tag" style="background:'+c.tint+'">'+c.short+'</span><span>'+f.w+'×'+f.h+' · '+f.glyphs.length+' ตัว</span>'+(isStarter(f)?'<span>· ตั้งต้น</span>':'')+'</div>'
  +'<button class="more" data-more="'+f.id+'" aria-label="ตัวเลือก '+esc(f.name)+'">'+ic('more')+'</button></div>';}
 function renderLibrary(){
  const all=[...S.fonts.values()],counts=new Map();for(const f of all)counts.set(f.console,(counts.get(f.console)||0)+1);
  const q=S.query.trim().toLowerCase(),match=f=>(S.filter==='all'||f.console===S.filter)&&(!q||f.name.toLowerCase().includes(q)||Core.consoleOf(f.console).name.toLowerCase().includes(q));
- const mine=all.filter(f=>!isSeed(f)&&match(f)).sort((a,b)=>b.updatedAt-a.updatedAt),built=all.filter(f=>isSeed(f)&&match(f));
+ const mine=all.filter(f=>!isStarter(f)&&match(f)).sort((a,b)=>b.updatedAt-a.updatedAt),built=all.filter(f=>isStarter(f)&&match(f));
  const el=$('#page-library'),keep=$('#q'),hadFocus=document.activeElement===keep;
  el.innerHTML=nav('คลังฟอนต์','<button class="icon-btn" data-act="import" aria-label="นำเข้า">'+ic('download')+'</button><button class="icon-btn" data-act="new" aria-label="สร้างฟอนต์ใหม่">'+ic('plus')+'</button>')
   +'<div class="large"><h1>คลังฟอนต์</h1><p>ฟอนต์บิตแมปสำหรับเกมบนเอมูเลเตอร์ทุกเครื่อง</p></div>'
@@ -691,7 +694,7 @@ function renderLibrary(){
   +'<div class="chips" role="group" aria-label="กรองตามเครื่อง"><button class="chip" aria-pressed="'+(S.filter==='all')+'" data-filter="all">ทั้งหมด '+all.length+'</button>'
   +Core.CONSOLES.filter(c=>counts.has(c.id)).map(c=>'<button class="chip" aria-pressed="'+(S.filter===c.id)+'" data-filter="'+c.id+'">'+c.short+' '+counts.get(c.id)+'</button>').join('')+'</div>'
   +(mine.length?'<div class="group-title">ฟอนต์ของฉัน</div><div class="cards">'+mine.map(cardHtml).join('')+'</div>':(!q&&S.filter==='all'?'<div class="group-title">ฟอนต์ของฉัน</div><div class="group"><button class="row" data-act="new"><span class="grow">สร้างฟอนต์แรกของคุณ<small>เลือกเครื่องแล้วเริ่มจากฟอนต์เปล่าหรือฟอนต์ไทยพื้นฐาน</small></span>'+ic('plus')+'</button></div>':''))
-  +(built.length?'<div class="group-title">ฟอนต์ตั้งต้น</div><div class="cards">'+built.map(cardHtml).join('')+'</div><p class="foot">ฟอนต์ตั้งต้นแก้ไข เพิ่มอักษร และลบได้เหมือนฟอนต์ทั่วไป</p>':'')
+  +((built.length||(S.filter==='all'&&!q))?'<div class="group-title">ฟอนต์ตั้งต้น</div>'+(built.length?'<div class="cards">'+built.map(cardHtml).join('')+'</div>':'')+(S.filter==='all'&&!q?'<div class="group" style="margin-top:12px"><button class="row" data-act="add-starter"><span class="grow">เพิ่มฟอนต์ตั้งต้น<small>นำเข้าไฟล์ .fontlab.json หรือเลือก “ตั้งเป็นฟอนต์ตั้งต้น” ในเมนู ⋯ ของฟอนต์ใดก็ได้</small></span>'+ic('plus')+'</button></div>':''):'')
   +(missingSeeds().length&&S.filter==='all'&&!q?'<div class="group" style="margin-top:12px"><button class="row" data-act="restore-seeds"><span class="grow">คืนฟอนต์ตั้งต้นที่ลบไป<small>'+missingSeeds().length+' ตัว</small></span>'+ic('plus')+'</button></div>':'')
   +(!mine.length&&!built.length?'<div class="empty">'+ic('search')+'<h2>ไม่พบฟอนต์</h2>ลองเปลี่ยนคำค้นหรือเครื่องที่เลือก</div>':'');
  if(hadFocus){const n=$('#q');n.focus();n.setSelectionRange(n.value.length,n.value.length);}
@@ -714,7 +717,8 @@ function newFontSheet(cid='gba',kind='thai-base'){
   +'<div class="field"><label for="nf-name">ชื่อ</label><input id="nf-name" class="input" maxlength="100" value="" placeholder="เช่น ไทยพิกเซล 16px" autofocus></div>'
   +'<div class="field"><label for="nf-con">เครื่อง</label><select id="nf-con" class="input">'+Core.CONSOLES.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('')+'</select></div>'
   +'<div class="grid2"><div class="field"><label for="nf-size">ช่องอักษร (px)</label><select id="nf-size" class="input"></select></div><div class="field"><label for="nf-bpp">ความลึกสี</label><select id="nf-bpp" class="input"></select></div></div>'
-  +'<div class="field"><span>เริ่มจาก</span><div class="seg" role="group"><button data-kind="thai-base" aria-pressed="true">ไทยพื้นฐาน</button><button data-kind="blank" aria-pressed="false">ฟอนต์เปล่า</button><button data-kind="file" aria-pressed="false">จากไฟล์ฟอนต์</button></div></div>'
+  +'<div class="field"><span>เริ่มจาก</span><div class="seg grid2x" role="group"><button data-kind="thai-base" aria-pressed="true">ไทยพื้นฐาน</button><button data-kind="blank" aria-pressed="false">ฟอนต์เปล่า</button><button data-kind="file" aria-pressed="false">จากไฟล์ฟอนต์</button><button data-kind="starter" aria-pressed="false">จากฟอนต์ตั้งต้น</button></div></div>'
+  +'<div id="nf-starter" class="field hide"><label for="nf-starter-sel">ฟอนต์ตั้งต้น</label><select id="nf-starter-sel" class="input">'+([...S.fonts.values()].filter(isStarter).map(f=>'<option value="'+f.id+'">'+esc(f.name)+' · '+f.w+'×'+f.h+'</option>').join('')||'<option value="">ยังไม่มีฟอนต์ตั้งต้น</option>')+'</select></div>'
   +'<div id="nf-file" class="hide"><div class="group inset" style="margin:0 0 10px"><div class="row"><span class="grow">ไฟล์ฟอนต์<small id="nf-fname">.ttf .otf .woff .woff2 · แปลงเป็นพิกเซลเป็นจุดเริ่มต้น</small></span><button class="btn tint small" id="nf-pick" type="button">เลือกไฟล์</button></div></div><input type="file" id="nf-file-in" accept=".ttf,.otf,.woff,.woff2" class="hide">'
   +'<div class="grid2"><div class="field"><label for="nf-fsize">ขนาดตัวอักษร (px)</label><input id="nf-fsize" class="input" type="number" min="6" max="64" value="11" inputmode="numeric"></div><div class="field"><label for="nf-thr">ความเข้มของขอบ</label><input id="nf-thr" type="range" min="20" max="90" value="50" style="accent-color:var(--accent)"></div></div>'
   +'<div class="preview-box" id="nf-pbox" style="margin-bottom:6px"><canvas id="nf-prev"></canvas></div><p class="foot" style="margin:0 4px 6px">ภาพที่ได้เป็นแค่จุดเริ่มต้น ควรแก้ด้วยมือต่อ และตรวจสิทธิ์การใช้ฟอนต์ก่อนนำไปใช้ในเกม</p></div>'
@@ -728,8 +732,10 @@ function newFontSheet(cid='gba',kind='thai-base'){
   size.addEventListener('change',syncSize);con.addEventListener('change',()=>setTimeout(syncSize,0));fsize.oninput=fprev;thr.oninput=fprev;
   $('#nf-pick',s).onclick=()=>$('#nf-file-in',s).click();
   $('#nf-file-in',s).onchange=async e=>{const fl=e.target.files[0];if(!fl)return;try{file.fam=await loadFontFace(fl);file.name=fl.name.replace(/\.[^.]+$/,'');$('#nf-fname',s).textContent=fl.name;if(!$('#nf-name',s).value)$('#nf-name',s).value=file.name+' (พิกเซล)';syncSize();}catch(err){file.fam=null;toast('เปิดไฟล์ฟอนต์ไม่สำเร็จ: '+(err.message||'ไฟล์ไม่ถูกต้อง'));}};
-  $$('[data-kind]',s).forEach(b=>{b.setAttribute('aria-pressed',b.dataset.kind===kind);b.onclick=()=>{kind=b.dataset.kind;$$('[data-kind]',s).forEach(x=>x.setAttribute('aria-pressed',x===b));$('#nf-file',s).classList.toggle('hide',kind!=='file');};});
+  $$('[data-kind]',s).forEach(b=>{b.setAttribute('aria-pressed',b.dataset.kind===kind);b.onclick=()=>{kind=b.dataset.kind;$$('[data-kind]',s).forEach(x=>x.setAttribute('aria-pressed',x===b));$('#nf-file',s).classList.toggle('hide',kind!=='file');$('#nf-starter',s).classList.toggle('hide',kind!=='starter');};});
   $('#nf-go',s).onclick=async()=>{const [w,h]=size.value.split(',').map(Number),base=FontLabBuiltins[0];
+   if(kind==='starter'){const src=S.fonts.get($('#nf-starter-sel',s).value);if(!src)return toast('ยังไม่มีฟอนต์ตั้งต้นให้เลือก');
+    const p=Core.convertProject(structuredClone(src),{console:con.value,w,h,bpp:+bpp.value});delete p.builtin;delete p.starter;p.id=Core.uid();p.name=($('#nf-name',s).value.trim()||src.name+' (ใหม่)').slice(0,100);p.updatedAt=Date.now();closeSheet();await addFont(p,{open:true});toast('สร้างจากฟอนต์ตั้งต้น “'+src.name+'” แล้ว');return;}
    if(kind==='file'){if(!file.fam)return toast('เลือกไฟล์ฟอนต์ก่อน');const p=Core.newProject({name:($('#nf-name',s).value.trim()||file.name||'ฟอนต์จากไฟล์').slice(0,100),console:con.value,w,h,bpp:+bpp.value});
     const g=rasterGlyphs(file.fam,p.glyphs.map(x=>x.c),{w,h,size:+fsize.value||11,thr:+thr.value});p.glyphs=g;p.note='แปลงจากไฟล์ฟอนต์ '+file.name;closeSheet();await addFont(p,{open:true});toast('สร้างฟอนต์จากไฟล์แล้ว · แก้ต่อด้วยมือได้');return;}
    const p=Core.convertProject(Core.starter(con.value,kind,base),{console:con.value,w,h,bpp:+bpp.value});p.name=($('#nf-name',s).value.trim()||p.name).slice(0,100);p.id=Core.uid();closeSheet();await addFont(p,{open:true});toast('สร้างฟอนต์แล้ว');};});}
@@ -775,12 +781,12 @@ function consoleSheet(id){const c=Core.consoleOf(id),fmts=Object.entries(c.forma
 
 /* ---------- font actions ---------- */
 function fontMenu(id){const f=S.fonts.get(id);if(!f)return;
- sheet('<h2>'+esc(f.name)+'</h2><p class="sub">'+Core.consoleOf(f.console).name+' · '+f.w+'×'+f.h+' · '+f.glyphs.length+' ตัว</p><div class="actions">'+action('เปิดในสตูดิโอ','open')+action('ทำสำเนา','dup')+action('ดาวน์โหลด .fontlab.json','json')+(isSeed(f)?action('คืนเป็นฟอนต์ตั้งต้นเดิม','reset-seed','red'):'')+action('ลบฟอนต์','del','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
+ sheet('<h2>'+esc(f.name)+'</h2><p class="sub">'+Core.consoleOf(f.console).name+' · '+f.w+'×'+f.h+' · '+f.glyphs.length+' ตัว</p><div class="actions">'+action('เปิดในสตูดิโอ','open')+action('ทำสำเนา','dup')+action('ดาวน์โหลด .fontlab.json','json')+(isSeed(f)?'':action(f.starter?'เลิกเป็นฟอนต์ตั้งต้น':'ตั้งเป็นฟอนต์ตั้งต้น','toggle-starter'))+(isSeed(f)?action('คืนเป็นฟอนต์ตั้งต้นเดิม','reset-seed','red'):'')+action('ลบฟอนต์','del','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
   s.addEventListener('click',async e=>{const a=e.target.closest('[data-act]')?.dataset.act;if(!a)return;
    if(a==='open'){closeSheet();openStudio(id);}
    if(a==='dup'){closeSheet();await addFont(duplicate(f));toast('ทำสำเนาแล้ว');}
    if(a==='json'){download(slug(f.name)+'.fontlab.json',JSON.stringify(f),'application/json');}
-   if(a==='del')confirmDelete(f);if(a==='reset-seed')confirmReset(f);});});}
+   if(a==='toggle-starter'){closeSheet();if(f.starter)delete f.starter;else f.starter=true;touch(f);renderLibrary();toast(f.starter?'ตั้งเป็นฟอนต์ตั้งต้นแล้ว · ใช้เป็นจุดเริ่มต้นของฟอนต์ใหม่ได้':'เลิกเป็นฟอนต์ตั้งต้นแล้ว');}if(a==='del')confirmDelete(f);if(a==='reset-seed')confirmReset(f);});});}
 const duplicate=f=>({...structuredClone(f),id:Core.uid(),name:(f.name+' (สำเนา)').slice(0,100),builtin:undefined,note:undefined,updatedAt:Date.now()});
 function confirmReset(f){const b=FontLabBuiltins.find(x=>x.id===f.id);if(!b)return;
  sheet('<h2>คืน “'+esc(f.name)+'” เป็นของเดิม?</h2><p class="sub">การแก้ไขทั้งหมดของฟอนต์นี้จะหายไป ย้อนกลับไม่ได้</p><div class="actions">'+action('คืนเป็นของเดิม','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
@@ -790,17 +796,17 @@ function confirmDelete(f){sheet('<h2>ลบ “'+esc(f.name)+'” ?</h2><p class
  $('[data-act=yes]',s).onclick=async()=>{closeSheet();S.fonts.delete(f.id);await Store.del(f.id).catch(()=>{});if(isSeed(f))setDeletedSeeds([...deletedSeeds(),f.id]);FontLabCloud.markDeleted(f.id);if(S.cur===f.id)S.cur=null;renderLibrary();if(S.tab==='studio')mountStudio();scheduleSync();toast('ลบแล้ว');};});}
 
 /* ---------- import ---------- */
-async function importFiles(files){
+async function importFiles(files,opts={}){
  for(const file of files){const ext=file.name.split('.').pop().toLowerCase();
   try{
-   if(ext==='json'){const raw=JSON.parse(await file.text());let f=Core.normalize(raw);if(S.fonts.has(f.id)||f.builtin)f={...f,id:Core.uid(),builtin:undefined,name:f.name+' (นำเข้า)'};f.updatedAt=Date.now();await addFont(f,{open:files.length===1});toast('นำเข้า “'+f.name+'” แล้ว');}
+   if(ext==='json'){const raw=JSON.parse(await file.text());let f=Core.normalize(raw);if(S.fonts.has(f.id)||f.builtin)f={...f,id:Core.uid(),builtin:undefined,name:f.name+' (นำเข้า)'};f.updatedAt=Date.now();if(opts.starter)f.starter=true;await addFont(f,{open:files.length===1&&!opts.starter});toast(opts.starter?'เพิ่ม “'+f.name+'” เป็นฟอนต์ตั้งต้นแล้ว':'นำเข้า “'+f.name+'” แล้ว');}
    else if(ext==='png'||ext==='bin'){const f=editable();if(!f)throw Error('เปิดฟอนต์ที่แก้ไขได้ในสตูดิโอก่อน แล้วนำเข้า .'+ext);
     let px;if(ext==='bin')px=Core.importBank(f,new Uint8Array(await file.arrayBuffer()));
     else{const bmp=await createImageBitmap(file),cv=document.createElement('canvas');cv.width=bmp.width;cv.height=bmp.height;const cx=cv.getContext('2d',{willReadFrequently:true});cx.drawImage(bmp,0,0);px=Core.readSheet(f,cx.getImageData(0,0,bmp.width,bmp.height).data,bmp.width,bmp.height);}
     S.undo=[];S.redo=[];px.forEach((p,i)=>{f.glyphs[i].p=p;});touch(f);mountStudio();toast('นำเข้า '+px.length+' ตัวอักษรจาก '+file.name);}
    else throw Error('รองรับเฉพาะ .json .png .bin');
   }catch(e){toast(file.name+': '+e.message);}}}
-function pickFiles(accept){const i=$('#pick');i.accept=accept;i.value='';i.onchange=()=>importFiles([...i.files]);i.click();}
+function pickFiles(accept,opts={}){const i=$('#pick');i.accept=accept;i.value='';i.onchange=()=>importFiles([...i.files],opts);i.click();}
 
 /* ---------- studio ---------- */
 const editable=()=>{const f=S.fonts.get(S.cur);return f&&!f.builtin?f:null;};
@@ -1065,7 +1071,7 @@ document.addEventListener('click',e=>{const t=e.target;
  const gl=t.closest('.gl');if(gl)return selectGlyph(+gl.dataset.i);
  const a=t.closest('[data-act]')?.dataset.act;if(!a||t.closest('.sheet'))return;
  if(a==='theme'){applyTheme(isDark()?'light':'dark',true);return;}
- if(a==='new')newFontSheet();else if(a==='restore-seeds')restoreSeeds();else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
+ if(a==='new')newFontSheet();else if(a==='restore-seeds')restoreSeeds();else if(a==='add-starter')pickFiles('.json,application/json',{starter:true});else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
  else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='shadow')shadowSheet();else if(a==='spacing')spacingSheet();else if(a==='save')saveNow();else if(a==='save-new')saveNewSheet();else if(a==='more')moreSheet();else if(a==='manage')glyphMenu();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='labels'){S.labels=!S.labels;if(S.labels)S.guides=true;try{localStorage.setItem('fontlab.zoneLabels',S.labels?'yes':'no');}catch{}$$('[data-act=labels]').forEach(b=>b.setAttribute('aria-pressed',S.labels));$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;$$('[data-act=grid]').forEach(b=>b.setAttribute('aria-pressed',S.grid));drawEditor();}
  else if(a==='dup-edit'){const f=S.fonts.get(S.cur),d=duplicate(f);addFont(d).then(()=>{openStudio(d.id);toast('ทำสำเนาแล้ว แก้ไขได้เลย');});}
  else if(a==='cloud')cloudSheet();});

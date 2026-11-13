@@ -155,6 +155,15 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.fill('#ag',Array.from({length:300},(_,i)=>String.fromCharCode(0x4E00+i)).join(''));await page.click('#bar-done');
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');await page.locator('.card:has-text("พิกเซล")').first().click();await page.waitForSelector('#edit');
  const chunk=await page.locator('#s-glyphs .gl').count();assert.ok(chunk<=240&&chunk>=200,'first chunk only: '+chunk);await page.locator('.gl-more').scrollIntoViewIfNeeded();await page.waitForFunction(n=>document.querySelectorAll('#s-glyphs .gl').length>n,chunk,{timeout:5000});
+ /* starter fonts: mark any font as a starter, import one, start a new font from it */
+ await page.click('.tab[data-tab=library]');assert.ok(!/แก้ไข เพิ่มอักษร และลบได้เหมือนฟอนต์ทั่วไป/.test(await page.locator('#page-library').innerText()),'starter footnote is gone');
+ const mine=page.locator('.card:not(:has-text("ตั้งต้น"))').first();const mineName=await mine.locator('h3').innerText();
+ await mine.locator('.more').click();await page.click('[data-act=toggle-starter]');await page.waitForFunction(n=>[...document.querySelectorAll('.card')].some(c=>c.querySelector('h3').innerText===n&&/ตั้งต้น/.test(c.innerText)),mineName,{timeout:5000});
+ assert.ok(await page.evaluate(n=>[...FontLabApp.S.fonts.values()].some(f=>f.name===n&&f.starter===true),mineName),'starter flag stored on the font');
+ {const os=require('os'),Cr=require('../src/core.js'),p=Cr.newProject({name:'ฟอนต์ตั้งต้นจากไฟล์',console:'gb',charset:['ก','ข']});const fp=path.join(os.tmpdir(),'fontlab-starter-test.json');fs.writeFileSync(fp,JSON.stringify(p));
+  await page.click('[data-act=add-starter]');await page.setInputFiles('#pick',fp);await page.waitForFunction(()=>[...document.querySelectorAll('.card')].some(c=>c.querySelector('h3').innerText==='ฟอนต์ตั้งต้นจากไฟล์'&&/ตั้งต้น/.test(c.innerText)),null,{timeout:5000});}
+ await page.click('#page-library [data-act=new]');await page.click('[data-kind=starter]');await page.selectOption('#nf-starter-sel',{label:'ฟอนต์ตั้งต้นจากไฟล์ · 8×16'});await page.click('#bar-done');await page.waitForSelector('#edit');
+ assert.strictEqual(await page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length),2,'new font copied the starter glyphs');
  /* offline: with the service worker installed the app still opens without a network */
  {const octx=await browser.newContext({viewport:{width:390,height:844}}),op=await octx.newPage();await op.goto(base);await op.waitForSelector('.card');
   await op.evaluate(()=>navigator.serviceWorker.ready);await op.waitForFunction(()=>navigator.serviceWorker.controller,null,{timeout:8000});await op.reload();await op.waitForSelector('.card');

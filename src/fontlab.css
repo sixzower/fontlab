@@ -208,3 +208,5 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .gl-more{grid-column:1/-1;text-align:center;color:var(--label2);font-size:13px;padding:10px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #edit:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 28%,transparent);outline-offset:3px}
+
+.seg.grid2x{display:grid;grid-template-columns:1fr 1fr}
