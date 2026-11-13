@@ -70,7 +70,7 @@ async function addFont(f,{open=false}={}){S.fonts.set(f.id,f);await Store.put(f)
 
 /* ---------- navigation ---------- */
 const TABS=[['library','คลังฟอนต์'],['consoles','เครื่องเกม'],['studio','สตูดิโอ'],['cloud','คลาวด์']];
-function renderTabs(){$('#tabs').innerHTML='<div class="brand"><b>Fℓ</b>FontLab</div>'+TABS.map(([id,l])=>'<button class="tab" data-tab="'+id+'"'+(S.tab===id?' aria-current="page"':'')+'>'+ic(id)+'<span>'+l+'</span></button>').join('');}
+function renderTabs(){$('#tabs').innerHTML='<div class="brand"><img src="logo.svg" alt="" width="36" height="36">FontLab</div>'+TABS.map(([id,l])=>'<button class="tab" data-tab="'+id+'"'+(S.tab===id?' aria-current="page"':'')+'>'+ic(id)+'<span>'+l+'</span></button>').join('');}
 function go(tab,{push=true}={}){S.tab=tab;$$('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+tab));renderTabs();if(push)history.replaceState(null,'','#'+tab);scrollTo(0,0);
  if(tab==='library')renderLibrary();if(tab==='consoles')renderConsoles();if(tab==='studio')mountStudio();if(tab==='cloud')renderCloud();}
 const nav=(title,actions='')=>'<div class="nav"><span class="nav-title">'+esc(title)+'</span><div class="nav-actions">'+actions+'</div></div>';
