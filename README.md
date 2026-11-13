@@ -2,6 +2,17 @@
 
 Static Thai ROM translation workspace. The game stays on the user's device. Live site: https://sixzower.github.io/RomTranslate/ . The downloadable `download/index.html` supports local editing and Excel; threaded mGBA testing uses the live site.
 
+## FontLab (1.0.16)
+
+FontLab is a new iOS-style website for building bitmap fonts for emulated games, in `fontlab/` (open `fontlab/index.html`, or `npm run dev` and visit `/fontlab/`). Four tabs: **Library** (search, filter by console, cards with live previews), **Consoles**, **Studio** (pixel editor with pencil/eraser/fill/picker, 4 index colours, shift/flip/copy/paste, per-glyph advance, undo/redo, live text preview that uses vowel+tone combination glyphs) and **Cloud**.
+
+* Consoles: Game Boy, GBC, NES, SNES (2/4bpp), Master System/Game Gear, Mega Drive, GBA, NDS, PlayStation and a custom entry. Each has its real tile format (`fontlab/core.js`), exports to `.bin`, PNG sheet and `.fontlab.json`, and imports PNG/bin back. Round-trips are tested.
+* Starter files per console are committed in `fontlab/starters/<console>/` (blank + Thai base: `.fontlab.json`, sheet PNG, `.bin`, README with offsets) and can also be downloaded as a `.zip` from the Consoles tab. Regenerate with `npm run fontlab`.
+* The four fonts that shipped with the site (Quetzal classic, Sword 14px, Seaglass 15px, Seaglass complete) are kept as read-only built-ins in `fontlab/data/fonts.js`, including their vowel/tone composites; duplicate one to edit it.
+* Cloud: new Supabase logic that stores font data only — one table `fontlab_fonts` (`cloud/fontlab.sql`, run once in the SQL Editor; copyable in the app), email sign-in, row-level security per user, newest-wins sync. It does not use the older ROM/workspace/vault tables, which are untouched. Built-ins are never uploaded.
+
+`node tests/fontlab-core.cjs` and `node tests/fontlab-browser.cjs` (Playwright, Supabase mocked) need no ROM. The existing translation tools in the site root are unchanged.
+
 ## Elite Redux typography fixes (1.0.15)
 
 THv1.3 fixes the Sixz ฬ andฬิ aliases that previously displayed asล andลิ. All11affected core contexts are reflowed, with667unrelatedUnicodecluster shapes and widths unchanged. OwnedThai shadow uses a lighter existing palette entry without foreground/background palette writes; nativefield oldRGB214/214/206 ->231/239/231. Birch's attentioncall now usesเฮ้. Nativefreshroute reachesclockandBirch, with0changedpixelsoutsidecaption versusv1.2; the user-reported verticalstripes were not reproduced and are not claimed fixed. Original and THv1.0/v1.1/v1.2 updatepaths are supported.

@@ -1,0 +1,132 @@
+[
+ {
+  "console": "gb",
+  "files": [
+   "gb-blank.fontlab.json",
+   "gb-blank-sheet.png",
+   "gb-blank.bin",
+   "gb-blank-README.txt",
+   "gb-thai-base.fontlab.json",
+   "gb-thai-base-sheet.png",
+   "gb-thai-base.bin",
+   "gb-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "gbc",
+  "files": [
+   "gbc-blank.fontlab.json",
+   "gbc-blank-sheet.png",
+   "gbc-blank.bin",
+   "gbc-blank-README.txt",
+   "gbc-thai-base.fontlab.json",
+   "gbc-thai-base-sheet.png",
+   "gbc-thai-base.bin",
+   "gbc-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "nes",
+  "files": [
+   "nes-blank.fontlab.json",
+   "nes-blank-sheet.png",
+   "nes-blank.bin",
+   "nes-blank-README.txt",
+   "nes-thai-base.fontlab.json",
+   "nes-thai-base-sheet.png",
+   "nes-thai-base.bin",
+   "nes-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "snes",
+  "files": [
+   "snes-blank.fontlab.json",
+   "snes-blank-sheet.png",
+   "snes-blank.bin",
+   "snes-blank-README.txt",
+   "snes-thai-base.fontlab.json",
+   "snes-thai-base-sheet.png",
+   "snes-thai-base.bin",
+   "snes-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "sms",
+  "files": [
+   "sms-blank.fontlab.json",
+   "sms-blank-sheet.png",
+   "sms-blank.bin",
+   "sms-blank-README.txt",
+   "sms-thai-base.fontlab.json",
+   "sms-thai-base-sheet.png",
+   "sms-thai-base.bin",
+   "sms-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "md",
+  "files": [
+   "md-blank.fontlab.json",
+   "md-blank-sheet.png",
+   "md-blank.bin",
+   "md-blank-README.txt",
+   "md-thai-base.fontlab.json",
+   "md-thai-base-sheet.png",
+   "md-thai-base.bin",
+   "md-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "gba",
+  "files": [
+   "gba-blank.fontlab.json",
+   "gba-blank-sheet.png",
+   "gba-blank.bin",
+   "gba-blank-README.txt",
+   "gba-thai-base.fontlab.json",
+   "gba-thai-base-sheet.png",
+   "gba-thai-base.bin",
+   "gba-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "nds",
+  "files": [
+   "nds-blank.fontlab.json",
+   "nds-blank-sheet.png",
+   "nds-blank.bin",
+   "nds-blank-README.txt",
+   "nds-thai-base.fontlab.json",
+   "nds-thai-base-sheet.png",
+   "nds-thai-base.bin",
+   "nds-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "ps1",
+  "files": [
+   "ps1-blank.fontlab.json",
+   "ps1-blank-sheet.png",
+   "ps1-blank.bin",
+   "ps1-blank-README.txt",
+   "ps1-thai-base.fontlab.json",
+   "ps1-thai-base-sheet.png",
+   "ps1-thai-base.bin",
+   "ps1-thai-base-README.txt"
+  ]
+ },
+ {
+  "console": "custom",
+  "files": [
+   "custom-blank.fontlab.json",
+   "custom-blank-sheet.png",
+   "custom-blank.bin",
+   "custom-blank-README.txt",
+   "custom-thai-base.fontlab.json",
+   "custom-thai-base-sheet.png",
+   "custom-thai-base.bin",
+   "custom-thai-base-README.txt"
+  ]
+ }
+]
