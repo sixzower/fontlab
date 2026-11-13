@@ -173,3 +173,12 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 /* iOS-style tooltip */
 .tip{position:fixed;z-index:400;pointer-events:none;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:500;line-height:1.2;padding:6px 10px;border-radius:9px;box-shadow:0 4px 16px rgba(0,0,0,.28);opacity:0;transform:scale(.92);transition:opacity .12s,transform .12s;white-space:nowrap;max-width:min(80vw,260px);overflow:hidden;text-overflow:ellipsis}
 .tip.on{opacity:.96;transform:none}
+
+/* quieter, more iOS-like guide colours */
+.check.ok{color:var(--label2)}.check.bad{color:var(--red)}
+.saved.ok,.saved.busy{color:var(--label2)}
+.legend i.hatch{background:repeating-linear-gradient(135deg,rgba(60,60,67,.5) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1px rgba(60,60,67,.3)}
+
+.cdot.dirty{background:var(--orange)}
+/* keep the whole tools row on one line on phones */
+.tools{gap:6px}.tools .seg button{min-width:40px;padding:0 6px}.tools .tgl{min-width:36px;padding:0}

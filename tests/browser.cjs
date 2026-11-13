@@ -73,6 +73,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('#u-undo');assert.strictEqual(await shadows(),before,'one undo removes every shadow');await page.click('#u-redo');assert.strictEqual(await shadows(),after,'redo restores them');
  await page.click('[data-act=shadow]');await page.click('#sh-scope [data-s=all]');assert.ok(/ลบเงาทั้งหมด \(\d+ อักษร/.test(await page.locator('#sh-rm').innerText()),'remove button counts shadows');
  await page.click('#sh-rm');assert.strictEqual(await shadows(),0,'all shadows removed in one step');await page.click('#u-undo');assert.strictEqual(await shadows(),after,'undo brings them back');
+ assert.ok(await page.evaluate(()=>!!document.querySelector('.tools #u-undo')&&!document.querySelector('.nav #u-undo')),'undo/redo live in the tools row, not the top bar');
  /* explicit save + auto spacing */
  await page.locator('#u-save').scrollIntoViewIfNeeded();await page.click('#u-save');await page.waitForFunction(()=>/บันทึกแล้ว ✓/.test(document.querySelector('.toast')?.textContent||''),null,{timeout:8000});
  await page.waitForFunction(()=>/✓ บันทึกในเครื่องแล้ว/.test(document.querySelector('#s-saved')?.textContent||''),null,{timeout:8000});
@@ -87,32 +88,40 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.locator('[data-more=builtin-sword-shield-th]').click();await page.click('[data-act=dup]');await page.waitForFunction(()=>FontLabApp.S.fonts.size===6);
  /* persistence */
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');assert.strictEqual(await page.locator('.card').count(),6,'user fonts persisted');
- /* cloud: automatic, no login, no cloud tab */
+ /* cloud: uploads only when saving (auto upload is an opt-in switch); no login, no cloud tab */
  assert.strictEqual(await page.locator('.tab').count(),3,'no cloud tab');assert.strictEqual(await page.locator('[data-act=sync],#c-form').count(),0,'no login form');
- await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});
+ await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:8000});
  const code=await page.evaluate(()=>localStorage.getItem('fontlab.code.v2'));assert.ok(/^[a-f0-9]{64}$/.test(code),'backup code created automatically');
- await page.waitForFunction(c=>true,code);const vault=()=>vaults.get(code);
- assert.strictEqual(vault().size,2,'2 user fonts auto-uploaded: '+calls.join(','));
- assert.ok(![...vault().values()].some(r=>r.font_id.startsWith('builtin')),'built-ins are not uploaded');
- const row=[...vault().values()][0];assert.ok(row.data.glyphs&&row.width&&row.glyph_count);
- /* editing saves to the cloud by itself */
+ const vault=()=>vaults.get(code),puts=()=>calls.filter(c=>c==='fontlab_put').length;
  await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ตั้งต้น"))').first().click();await page.waitForSelector('#edit');
- const b3=await page.locator('#edit').boundingBox();await page.mouse.click(b3.x+b3.width/2,b3.y+b3.height/2);
- await page.waitForFunction(()=>document.querySelector('.cdot.ok'));await page.waitForTimeout(300);
- const t0=Math.max(...[...vault().values()].map(r=>Date.parse(r.updated_at)));assert.ok(Date.now()-t0<15000,'edit uploaded');
+ const b3=await page.locator('#edit').boundingBox(),p0=puts();await page.mouse.click(b3.x+b3.width/2,b3.y+b3.height/2);await page.waitForTimeout(700);
+ assert.strictEqual(puts(),p0,'an edit alone does not upload');assert.ok(await page.locator('.cdot.dirty').count(),'dot says: not on the cloud yet');
+ await page.click('#u-save');await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});
+ assert.strictEqual(vault().size,2,'pressing save uploads the 2 user fonts: '+calls.join(','));
+ assert.ok(![...vault().values()].some(r=>r.font_id.startsWith('builtin')),'untouched starter fonts are not uploaded');
+ const row=[...vault().values()][0];assert.ok(row.data.glyphs&&row.width&&row.glyph_count);
  /* status sheet shows the code, a second device can use it */
- await page.click('#page-studio [data-act=cloud]');assert.ok(/••••/.test(await page.locator('#cc-code').innerText()),'code masked');
+ await page.click('#page-studio [data-act=cloud]');assert.ok(/••••/.test(await page.locator('#cc-code').innerText()),'code masked');assert.strictEqual(await page.locator('#cc-auto').getAttribute('aria-checked'),'false','auto upload is off by default');
  await page.click('#cc-show');assert.strictEqual(await page.locator('#cc-code').innerText(),code);await page.keyboard.press('Escape');
- const ctx2=await browser.newContext({viewport:{width:390,height:844}});await ctx2.addInitScript(()=>{window.FontLabSyncDelay=50;});await ctx2.route('https://*.supabase.co/**',handler);const page2=await ctx2.newPage();page2.on('pageerror',e=>errors.push(e.message));await page2.goto(base);await page2.waitForSelector('.card');
+ const ctx2=await browser.newContext({viewport:{width:390,height:844}});await ctx2.route('https://*.supabase.co/**',handler);const page2=await ctx2.newPage();page2.on('pageerror',e=>errors.push(e.message));await page2.goto(base);await page2.waitForSelector('.card');
  assert.notStrictEqual(await page2.evaluate(()=>localStorage.getItem('fontlab.code.v2')),code);
  await page2.click('#page-library [data-act=cloud]');await page2.fill('#cc-in',code);await page2.click('#cc-use');
  await page2.waitForFunction(()=>[...document.querySelectorAll('.card')].filter(c=>!/ตั้งต้น/.test(c.innerText)).length===2,null,{timeout:8000});
  assert.strictEqual(await page2.locator('.card').count(),6,'fonts arrived on the other device');await ctx2.close();
- /* delete -> removed from cloud */
+ /* delete -> the dot turns pending, the cloud copy goes on the next sync */
  await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ตั้งต้น")) .more').first().click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
- await page.waitForFunction(()=>document.querySelector('.cdot.ok'));await page.waitForTimeout(400);
- assert.strictEqual(vault().size,1,'deleted font removed from cloud');
- await page.click('#page-library [data-act=cloud]');await page.fill('#cc-in','xyz');await page.click('#cc-use');assert.ok(await page.locator('.toast.on').count(),'bad code rejected');await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:5000});assert.strictEqual(vault().size,2,'not removed before syncing');
+ await page.click('#page-library [data-act=cloud]');await page.click('#cc-sync');await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});await page.waitForTimeout(300);
+ assert.strictEqual(vault().size,1,'deleted font removed from cloud on sync');
+ /* opt-in auto upload */
+ await page.click('#cc-auto');assert.strictEqual(await page.locator('#cc-auto').getAttribute('aria-checked'),'true');await page.keyboard.press('Escape');
+ await page.locator('.card:not(:has-text("ตั้งต้น"))').first().click();await page.waitForSelector('#edit');
+ const t1=Math.max(...[...vault().values()].map(r=>Date.parse(r.updated_at)));await page.waitForTimeout(1100);
+ const b4=await page.locator('#edit').boundingBox();await page.mouse.click(b4.x+b4.width/2,b4.y+b4.height/3);
+ await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});await page.waitForTimeout(300);
+ assert.ok(Math.max(...[...vault().values()].map(r=>Date.parse(r.updated_at)))>t1,'with auto upload on, an edit reaches the cloud by itself');
+ await page.click('#page-studio [data-act=cloud]');await page.click('#cc-auto');await page.keyboard.press('Escape');
+ await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=cloud]');await page.fill('#cc-in','xyz');await page.click('#cc-use');assert.ok(await page.locator('.toast.on').count(),'bad code rejected');await page.keyboard.press('Escape');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/cloud.png':undefined});
  /* desktop layout */
  await page.setViewportSize({width:1280,height:820});await page.click('.tab[data-tab=library]');await page.locator('.card').first().click();await page.waitForSelector('#edit');

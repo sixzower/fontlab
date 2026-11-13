@@ -29,6 +29,8 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.32** Cloud upload is manual by default: edits are kept in the browser and the cloud dot turns orange (“not on the cloud yet”); pressing save (or “add as new font”, or “sync now”) uploads. Page load only pulls newer fonts and never pushes. Auto upload after edits is an opt-in switch in the cloud sheet.
+- **1.0.31** Undo/redo moved from the top bar to the tools row under the canvas; guides use quiet greys (tinted mark/lower zones, hatched forbidden rows, thin baseline) instead of orange/green/purple/red bands.
 - **1.0.30** iOS-style tooltips on every icon-only button (hover or keyboard focus), with the short name only.
 - **1.0.29** Starter fonts are ordinary fonts (edit, add glyphs, delete, restore, reset to original). Thai vowel and tone marks now overlay the previous letter instead of taking their own cell. Icon-only save button plus “add as new font” (Save As) that does not overwrite the original.
 - **1.0.28** Visible save: a “บันทึก” button and a live “saved locally / on the cloud” line in the studio. Auto spacing (advance = ink right edge + gap) for one glyph or the font, one undo step. Exports a `-widths.bin` advance table (also in the zip) and an ADV column in the README.
