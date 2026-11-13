@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="1.0.56">
+<meta name="app-version" content="1.0.57">
 <title>FontLab</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzYTNhM2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwYTBhMGIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNC41IiBmaWxsPSJ1cmwoI2cpIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoNDUgMzIgMjgpIj48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iMzAiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iI2ZmOWYwYSIvPjxwYXRoIGQ9Ik0yOCAzNmg4bC00IDl6IiBmaWxsPSIjZDFkMWQ2Ii8+PHBhdGggZD0iTTMwLjUgNDEuNWgzbC0xLjUgMy41eiIgZmlsbD0iIzFjMWMxZSIvPjwvZz48cmVjdCB4PSIxNCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyMCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyNiIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii41Ii8+PC9zdmc+Cg==">
 <meta name="apple-mobile-web-app-title" content="FontLab">
@@ -662,8 +662,8 @@ const savedText=()=>S.save==='saving'?'กำลังบันทึก…':'�
 function refreshSaved(){const el=$('#s-saved');if(el){el.textContent=savedText();el.className='saved '+(S.save==='saving'?'busy':S.cloud.state==='err'?'err':'ok');}}
 function touch(f){f.updatedAt=Date.now();S.save='saving';refreshSaved();clearTimeout(saveTimers.get(f.id));saveTimers.set(f.id,setTimeout(()=>Store.put(f).then(()=>{S.save='done';refreshSaved();}).catch(()=>toast('บันทึกในเครื่องไม่สำเร็จ')),400));scheduleSync();}
 function moreSheet(){const f=S.fonts.get(S.cur);if(!f)return;
- sheet('<h2>'+esc(f.name)+'</h2><p class="sub">เมนูเพิ่มเติม</p><div class="actions">'+action('ตั้งค่าฟอนต์ (เครื่อง · ขนาดช่อง · ความลึกสี)','m-settings')+action('ส่งออก…','m-export')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
-  s.addEventListener('click',e=>{const a=e.target.closest('[data-act]')?.dataset.act;if(!a)return;closeSheet();if(a==='m-settings')settingsSheet();else if(a==='m-export')exportSheet();});});}
+ sheet('<h2>'+esc(f.name)+'</h2><p class="sub">เมนูเพิ่มเติม</p><div class="actions">'+action('ตั้งค่าฟอนต์ (เครื่อง · ขนาดช่อง · ความลึกสี)','m-settings')+action('ส่งออก…','m-export')+action('ปุ่มลัดแป้นพิมพ์','m-keys')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
+  s.addEventListener('click',e=>{const a=e.target.closest('[data-act]')?.dataset.act;if(!a)return;closeSheet();if(a==='m-settings')settingsSheet();else if(a==='m-export')exportSheet();else if(a==='m-keys')shortcutsSheet();});});}
 function saveNewSheet(){const f=editable();if(!f)return guardEdit();
  sheet('<h2>เพิ่มเป็นฟอนต์ใหม่</h2><p class="sub">สร้างฟอนต์ใหม่จากสภาพปัจจุบัน โดยไม่บันทึกทับฟอนต์เดิม</p>'
   +'<div class="field"><label for="sn-name">ชื่อฟอนต์ใหม่</label><input id="sn-name" class="input" maxlength="100" value="'+esc((f.name+' (ใหม่)').slice(0,100))+'" autofocus></div>'
@@ -1193,7 +1193,7 @@ function shortcutsSheet(){sheet('<h2>ปุ่มลัดในสตูดิ�
 document.addEventListener('keydown',e=>{
  if(e.key==='Enter'&&e.target.matches?.('.card')){openStudio(e.target.dataset.open);return;}
  if(S.tab!=='studio'||e.defaultPrevented||document.querySelector('.sheet')||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')||document.activeElement?.isContentEditable)return;
- const k=e.key,K=k.length===1?k.toLowerCase():k,mod=e.ctrlKey||e.metaKey,f=S.fonts.get(S.cur);if(!f)return;
+ const c=e.code||'',k=c==='BracketLeft'?'[':c==='BracketRight'?']':(c==='Slash'&&e.shiftKey)?'?':e.key,K=/^Key[A-Z]$/.test(c)?c[3].toLowerCase():/^Digit[1-4]$/.test(c)?c[5]:(k.length===1?k.toLowerCase():k),mod=e.ctrlKey||e.metaKey,f=S.fonts.get(S.cur);if(!f)return;
  if(mod&&!e.altKey){
   if(K==='z'){e.preventDefault();stepHistory(e.shiftKey?1:-1);}else if(K==='y'){e.preventDefault();stepHistory(1);}
   else if(K==='c'){e.preventDefault();transform('copy');}
