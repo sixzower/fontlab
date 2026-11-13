@@ -153,6 +153,11 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  const rast=await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);const g=f.glyphs.find(x=>x.c==='ก'),h=f.glyphs.find(x=>x.c==='ิ');return [g&&g.p.replace(/0/g,'').length,h&&h.p.replace(/0/g,'').length];});assert.ok(rast[0]>5,'consonant rasterised from the font file');assert.ok(rast[1]>0,'vowel mark rasterised separately');
  /* big font: the glyph list renders in chunks */
  await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.fill('#ag',Array.from({length:300},(_,i)=>String.fromCharCode(0x4E00+i)).join(''));await page.click('#bar-done');
+ /* quick A–Z / digits / punctuation with ready-made pixels */
+ await page.evaluate(()=>{const f=FontLabApp.S.fonts.get(FontLabApp.S.cur);f.glyphs=f.glyphs.filter(g=>g.c!=='A'&&g.c!=='z');});
+ await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.click('[data-set^=ABC]');await page.click('[data-set^=abc]');
+ assert.ok((await page.inputValue('#ag')).includes('Za'),'chips fill the input');await page.click('#bar-done');
+ assert.ok(await page.evaluate(()=>{const f=FontLabApp.S.fonts.get(FontLabApp.S.cur),a=f.glyphs.find(g=>g.c==='A'),z=f.glyphs.find(g=>g.c==='z');return a&&z&&/[1-3]/.test(a.p)&&/[1-3]/.test(z.p)&&a.p.length===f.w*f.h;}),'A and z added with pixels');
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');await page.locator('.card:has-text("พิกเซล")').first().click();await page.waitForSelector('#edit');
  const chunk=await page.locator('#s-glyphs .gl').count();assert.ok(chunk<=240&&chunk>=200,'first chunk only: '+chunk);await page.locator('.gl-more').scrollIntoViewIfNeeded();await page.waitForFunction(n=>document.querySelectorAll('#s-glyphs .gl').length>n,chunk,{timeout:5000});
  /* starter fonts: mark any font as a starter in its menu, start a new font from it */
