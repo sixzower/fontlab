@@ -21,14 +21,14 @@ const FontLabCloud=(()=>{
  const tombs=()=>{try{return JSON.parse(localStorage.getItem(DEL)||'[]');}catch{return memTombs;}};
  const setTombs=a=>{memTombs=[...new Set(a)];try{localStorage.setItem(DEL,JSON.stringify(memTombs));}catch{}};
  /* newest wins. local = the user's (non built-in) fonts */
- async function sync(local,{onDownload,onProgress=()=>{}}){
-  onProgress('กำลังตรวจรายการบนคลาวด์…');const meta=await listMeta(),cloud=new Map(meta.map(m=>[m.font_id,m])),dead=tombs().filter(id=>cloud.has(id));
-  if(dead.length){await remove(dead);dead.forEach(id=>cloud.delete(id));}setTombs([]);
+ async function sync(local,{onDownload,onProgress=()=>{},pull=false}){
+  onProgress('กำลังตรวจรายการบนคลาวด์…');const meta=await listMeta(),cloud=new Map(meta.map(m=>[m.font_id,m])),pending=new Set(tombs()),dead=[...pending].filter(id=>cloud.has(id));
+  if(!pull){if(dead.length){await remove(dead);dead.forEach(id=>cloud.delete(id));}setTombs([]);} /* pull-only keeps deletions for the next real sync */
   const have=new Map(local.map(f=>[f.id,f])),up=[],down=[];
-  for(const f of local){const c=cloud.get(f.id);if(!c||(f.updatedAt||0)>Date.parse(c.updated_at)+1000)up.push(f);}
-  for(const [id,c] of cloud){const f=have.get(id);if(!f||Date.parse(c.updated_at)>(f.updatedAt||0)+1000)down.push(id);}
+  if(!pull)for(const f of local){const c=cloud.get(f.id);if(!c||(f.updatedAt||0)>Date.parse(c.updated_at)+1000)up.push(f);}
+  for(const [id,c] of cloud){if(pull&&pending.has(id))continue;const f=have.get(id);if(!f||Date.parse(c.updated_at)>(f.updatedAt||0)+1000)down.push(id);}
   if(up.length){onProgress('กำลังอัปโหลด '+up.length+' ฟอนต์…');await put(up);}
   let n=0;for(let i=0;i<down.length;i+=5){const ids=down.slice(i,i+5);onProgress('กำลังดึงฟอนต์ '+Math.min(i+5,down.length)+'/'+down.length+'…');for(const r of await get(ids)){n++;await onDownload(r.data);}}
   return{uploaded:up.length,downloaded:n,total:cloud.size+up.filter(f=>!meta.some(m=>m.font_id===f.id)).length};}
- return{code,setCode,newCode,persistent,sync,markDeleted:id=>setTombs([...tombs(),id])};
+ return{code,setCode,newCode,persistent,sync,pendingDeletes:()=>tombs().length,markDeleted:id=>setTombs([...tombs(),id])};
 })();

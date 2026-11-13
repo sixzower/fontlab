@@ -64,7 +64,7 @@ const maxIndex=p=>Math.min(3,(1<<p.bpp)-1);
    Measured from the fonts bundled with the site (16 px tall cell, row 0 = top):
    tone marks/upper vowels sit on rows 0–6, the consonant body on rows 6–12 (baseline under row 12),
    lower vowels and descenders on rows 12–15. Other heights scale proportionally. */
-const ZONES=[{id:'top',name:'วรรณยุกต์และสระบน',rows:[0,5],color:'#ff9f0a'},{id:'body',name:'ลำตัวพยัญชนะ (เส้นฐานใต้แถว 12)',rows:[6,12],color:'#30d158'},{id:'low',name:'สระล่างและหางพยัญชนะ',rows:[13,15],color:'#bf5af2'}];
+const ZONES=[{id:'top',name:'วรรณยุกต์และสระบน',rows:[0,5],color:'#aeaeb2'},{id:'body',name:'ลำตัวพยัญชนะ (เส้นฐานใต้แถว 12)',rows:[6,12],color:'#8e8e93'},{id:'low',name:'สระล่างและหางพยัญชนะ',rows:[13,15],color:'#636366'}];
 const ALLOWED={cons:[2,15],upper:[0,6],tone:[0,6],lower:[12,15],lead:[2,12],digit:[2,12],cluster:[0,15],other:[0,15]};
 const CLASS_NAMES={cons:'พยัญชนะ',upper:'สระบน',tone:'วรรณยุกต์/การันต์',lower:'สระล่าง',lead:'สระหน้า',digit:'ตัวเลข',cluster:'อักษรผสม',other:'อักษรอื่น'};
 const classOf=c=>[...c].length>1?'cluster':/[ก-ฮฤฦฯๆ฿]/.test(c)?'cons':/[ัิีึื็ํ]/.test(c)?'upper':/[่้๊๋์]/.test(c)?'tone':/[ฺุู]/.test(c)?'lower':/[เแโใไ]/.test(c)?'lead':/[0-9๐-๙]/.test(c)?'digit':'other';
