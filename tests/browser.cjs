@@ -69,11 +69,18 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.locator('[data-act=shadow]').scrollIntoViewIfNeeded();await page.click('[data-act=shadow]');await page.click('#sh-scope [data-s=all]');
  assert.ok(/จะเปลี่ยน \d+ จาก/.test(await page.locator('#sh-info').innerText()),'preview counts shown');
  const shadows=()=>page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);return f.glyphs.filter(g=>g.p.includes('2')).length;});
- const before=await shadows();await page.click('#sh-go');const after=await shadows();assert.ok(after>before,'shadow pixels were added ('+before+' -> '+after+')');
+ const before=await shadows();await page.click('#bar-done');const after=await shadows();assert.ok(after>before,'shadow pixels were added ('+before+' -> '+after+')');
  await page.click('#u-undo');assert.strictEqual(await shadows(),before,'one undo removes every shadow');await page.click('#u-redo');assert.strictEqual(await shadows(),after,'redo restores them');
  await page.click('[data-act=shadow]');await page.click('#sh-scope [data-s=all]');assert.ok(/ลบเงาทั้งหมด \(\d+ อักษร/.test(await page.locator('#sh-rm').innerText()),'remove button counts shadows');
  await page.click('#sh-rm');assert.strictEqual(await shadows(),0,'all shadows removed in one step');await page.click('#u-undo');assert.strictEqual(await shadows(),after,'undo brings them back');
  assert.ok(await page.evaluate(()=>!!document.querySelector('.tools #u-undo')&&!document.querySelector('.nav #u-undo')),'undo/redo live in the tools row, not the top bar');
+ /* iOS sheet chrome: header bar, swipe-down to dismiss, back button, more menu */
+ await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=new]');
+ assert.strictEqual((await page.locator('.sheet .bar-title').innerText()).trim(),'ฟอนต์ใหม่');assert.strictEqual((await page.locator('#bar-done').innerText()).trim(),'สร้าง');assert.ok(await page.locator('#bar-cancel').isVisible(),'cancel is shown when there is a primary action');
+ await page.waitForTimeout(500);const hb=await page.locator('.sheet-head').boundingBox();await page.mouse.move(hb.x+hb.width/2,hb.y+8);await page.mouse.down();await page.mouse.move(hb.x+hb.width/2,hb.y+260,{steps:6});await page.mouse.up();
+ await page.waitForFunction(()=>!document.querySelector('.sheet'),null,{timeout:3000});
+ await page.locator('.card:not(:has-text("ตั้งต้น"))').first().click();await page.waitForSelector('#edit');
+ assert.ok(await page.locator('#page-studio .nav .back').isVisible(),'studio has a back button');await page.click('#page-studio [data-act=more]');assert.ok(/ส่งออก/.test(await page.locator('.sheet').innerText()),'more menu lists export');await page.keyboard.press('Escape');
  /* zone labels toggle */
  await page.locator('[data-act=labels]').scrollIntoViewIfNeeded();await page.click('[data-act=labels]');assert.strictEqual(await page.locator('[data-act=labels]').getAttribute('aria-pressed'),'true');assert.strictEqual(await page.locator('[data-act=guides]').getAttribute('aria-pressed'),'true','labels switch the guides on');
  assert.ok(await page.evaluate(()=>{const t=['grid','guides','labels'].map(a=>document.querySelector('[data-act='+a+']').getBoundingClientRect().top);return t.every(v=>Math.abs(v-t[0])<4);}),'grid / guides / labels stay together as one group');
@@ -83,7 +90,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.waitForFunction(()=>/✓ บันทึกในเครื่องแล้ว/.test(document.querySelector('#s-saved')?.textContent||''),null,{timeout:8000});
  await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur),g=f.glyphs.find(x=>x.c==='ก');g.p='0'.repeat(f.w*6)+'0111'+'0'.repeat(f.w-4)+'0'.repeat(f.w*(f.h-7));g.a=f.w;});
  const adv=()=>page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);return f.glyphs.find(x=>x.c==='ก').a;});
- await page.click('[data-act=spacing]');await page.click('#sp-scope [data-s=all]');await page.click('#sp-go');assert.ok(await adv()<8,'auto spacing tightened the advance');await page.click('#u-undo');assert.strictEqual(await adv(),8,'one undo restores spacing');
+ await page.click('[data-act=spacing]');await page.click('#sp-scope [data-s=all]');await page.click('#bar-done');assert.ok(await adv()<8,'auto spacing tightened the advance');await page.click('#u-undo');assert.strictEqual(await adv(),8,'one undo restores spacing');
  /* starter fonts are ordinary: editable, deletable, restorable; a copy is made through the card menu */
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-sword-shield-th]');await page.waitForSelector('#edit');
  assert.strictEqual(await page.locator('[data-act=dup-edit]').count(),0,'no read-only banner');assert.ok(await page.locator('#u-save').count(),'save button on a starter font');
