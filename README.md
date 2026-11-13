@@ -2,6 +2,49 @@
 
 Static Thai ROM translation workspace. The game stays on the user's device. Live site: https://sixzower.github.io/RomTranslate/ . The downloadable `download/index.html` supports local editing and Excel; threaded mGBA testing uses the live site.
 
+## FontLab points to the live Supabase project (1.0.23)
+
+`fontlab/config.js` now uses the healthy Supabase project (publishable key only); the old host no longer exists (DNS NXDOMAIN). `cloud/fontlab.sql` is installed there. A live round trip was checked with a throw-away backup code: put, list, get, delete worked, a different code saw nothing, a malformed code was rejected and reading the tables directly was refused. FontLab is served from GitHub Pages at `/fontlab/` under the site root once this reaches main.
+
+## FontLab automatic cloud backup, no login (1.0.22)
+
+The Cloud tab and email sign-in are gone. FontLab now creates a random 256-bit backup code in the browser and saves every user font to Supabase by itself a moment after each edit, create, duplicate, import or delete (status dot on the cloud button next to the theme button). Moving to another device: open the cloud sheet, copy the code, paste it on the other device and tap “เชื่อมต่อด้วยรหัสนี้และรวมฟอนต์” (newest copy wins; deletions are replayed). Built-in fonts are never uploaded.
+
+Supabase now needs the new `cloud/fontlab.sql` once (the previous email-login table `fontlab_fonts` is no longer used; a commented `drop table` is included). It stores font data only in two closed tables reached through four security-definer functions (`fontlab_list/get/put/delete`); only the SHA-256 of the code is stored, so the code works like a password. Trade-off to know: without accounts anyone can create a vault, so storage is capped at 500 fonts of at most 2 MB per code. Fonts still live in the browser first, so the app works offline.
+
+## FontLab console menu and Thai drawing limits (1.0.21)
+
+The Consoles tab is now a grouped app-icon menu (handhelds, home/arcade, 3D-era, other) covering 25 targets: GB, GBC, GBA, DS, PSP, Game Gear, Neo Geo Pocket, WonderSwan, NES, SNES, N64, PS1, Mega Drive, Master System, Mega CD, Saturn, PC Engine, Atari 2600, arcade, 3DS, PS2, GameCube/Wii, Switch, Dreamcast and a custom entry. Tile machines use their real tile formats; consoles whose fonts are game-specific textures (PSP, N64, Saturn, arcade, 3DS and later, Neo Geo Pocket) export a generic linear bitmap and are marked “PNG first” instead of pretending to be a hardware format. WonderSwan and PC Engine reuse the Game Boy / SNES tile layouts and say to verify against the game. Starters were regenerated for every console (`npm run fontlab`).
+
+Drawing limits, measured from the bundled Thai fonts (16 px cell, row 0 = top): tone marks and upper vowels rows 0–5, consonant body rows 6–12 with the baseline under row 12, lower vowels and descenders rows 13–15; other heights scale proportionally and cells under 12 px are flagged as too short. Each console sheet lists the rows for its default cell. In the Studio the zones are tinted, rows a character class must not use are shaded red, offending pixels get a red outline, a status line says “✓ / ⚠” for the current glyph, and “ตรวจเกินเขตทั้งฟอนต์” lists every glyph that exceeds its rows or advance width. The four built-in fonts pass the check with no false positives.
+
+## FontLab official logo (1.0.20)
+
+The chosen logo is option 9: a white pencil with an orange eraser drawing a pixel line, on a graphite tile. It is now the sidebar logo, browser tab icon (`icon.svg`, `favicon.ico`), iPhone/iPad home-screen icon and installable-app icons. `node scripts/build_fontlab_icons.cjs` regenerates them from `fontlab/logo-options/option-9.svg`.
+
+## FontLab sandbox fix, tab order and logo options (1.0.19)
+
+FontLab now works inside sandboxed preview frames: the Consoles, Studio and Cloud tabs used to stay blank when `history.replaceState` or `localStorage` was blocked (any such failure is now caught, and a page that fails to draw shows its error instead of staying empty). `tests/fontlab-sandbox.cjs` loads the single-file build in `sandbox` iframes to guard this. The tab order is now Library · Studio · Consoles · Cloud. Nine logo candidates are in `fontlab/logo-options/` (`options.png` contact sheet, `index.html`, `option-N.svg`, rebuilt by `scripts/build_fontlab_logo_options.cjs`); the shipped logo is unchanged until one is chosen.
+
+## FontLab white theme, theme switch and iOS menus (1.0.18)
+
+FontLab no longer uses the blue accent: light mode is white with graphite controls, dark mode is black with white controls, and the logo tile is now graphite. A sun/moon button at the top right of every page switches light/dark (remembered in `fontlab.theme`; default follows the system). Native `<select>` dropdowns are replaced by iOS-style pop-up menus (blurred rounded list, check mark, arrow-key and Esc support) while the real select stays in the DOM as the value holder. The translation workspace and patch site are untouched.
+
+## FontLab logo and single file (1.0.17)
+
+FontLab has its own logo: a pixel-art “F” with a game-font drop shadow and a yellow cursor pixel on an iOS-style blue-violet tile (`fontlab/logo.svg`, `icon.svg`). Browser tab (`favicon.ico`, SVG), iPhone/iPad home screen (`apple-touch-icon.png`) and installable-app icons (`manifest.webmanifest`, incl. maskable) are generated by `node scripts/build_fontlab_icons.cjs`. The sidebar uses the same logo. `node scripts/build_fontlab_single.cjs` (also run by `npm run fontlab`) writes a self-contained `fontlab/download/index.html` that works offline by double-click.
+
+## FontLab (1.0.16)
+
+FontLab is a new iOS-style website for building bitmap fonts for emulated games, in `fontlab/` (open `fontlab/index.html`, or `npm run dev` and visit `/fontlab/`). Four tabs: **Library** (search, filter by console, cards with live previews), **Consoles**, **Studio** (pixel editor with pencil/eraser/fill/picker, 4 index colours, shift/flip/copy/paste, per-glyph advance, undo/redo, live text preview that uses vowel+tone combination glyphs) and **Cloud**.
+
+* Consoles: Game Boy, GBC, NES, SNES (2/4bpp), Master System/Game Gear, Mega Drive, GBA, NDS, PlayStation and a custom entry. Each has its real tile format (`fontlab/core.js`), exports to `.bin`, PNG sheet and `.fontlab.json`, and imports PNG/bin back. Round-trips are tested.
+* Starter files per console are committed in `fontlab/starters/<console>/` (blank + Thai base: `.fontlab.json`, sheet PNG, `.bin`, README with offsets) and can also be downloaded as a `.zip` from the Consoles tab. Regenerate with `npm run fontlab`.
+* The four fonts that shipped with the site (Quetzal classic, Sword 14px, Seaglass 15px, Seaglass complete) are kept as read-only built-ins in `fontlab/data/fonts.js`, including their vowel/tone composites; duplicate one to edit it.
+* Cloud: new Supabase logic that stores font data only — one table `fontlab_fonts` (`cloud/fontlab.sql`, run once in the SQL Editor; copyable in the app), email sign-in, row-level security per user, newest-wins sync. It does not use the older ROM/workspace/vault tables, which are untouched. Built-ins are never uploaded.
+
+`node tests/fontlab-core.cjs` and `node tests/fontlab-browser.cjs` (Playwright, Supabase mocked) need no ROM. The existing translation tools in the site root are unchanged.
+
 ## Elite Redux typography fixes (1.0.15)
 
 THv1.3 fixes the Sixz ฬ andฬิ aliases that previously displayed asล andลิ. All11affected core contexts are reflowed, with667unrelatedUnicodecluster shapes and widths unchanged. OwnedThai shadow uses a lighter existing palette entry without foreground/background palette writes; nativefield oldRGB214/214/206 ->231/239/231. Birch's attentioncall now usesเฮ้. Nativefreshroute reachesclockandBirch, with0changedpixelsoutsidecaption versusv1.2; the user-reported verticalstripes were not reproduced and are not claimed fixed. Original and THv1.0/v1.1/v1.2 updatepaths are supported.
