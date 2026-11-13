@@ -277,19 +277,20 @@ function selectGlyph(i,force){const f=S.fonts.get(S.cur);if(!f)return;S.idx=i;$$
  const adv=$('#s-adv');adv.value=g.a;adv.disabled=!!f.builtin;$('#s-advv').textContent=g.a+' px';sizeEditor();drawEditor();}
 function sizeEditor(){const f=S.fonts.get(S.cur),avail=Math.max(160,Math.min(520,($('.stage')?.clientWidth||320)-4)),sc=Math.max(3,Math.min(Math.floor(avail/f.w),Math.floor(440/f.h)));edit.scale=sc;edit.cv.width=f.w*sc;edit.cv.height=f.h*sc;}
 function drawEditor(buf){const f=S.fonts.get(S.cur),g=f.glyphs[S.idx],{ctx,scale:sc}=edit,colors=pal(f),w=f.w,h=f.h,W=w*sc,H=h*sc;
- const px=buf?Array.from(buf).join(''):g.p,chk=Core.checkGlyph(f,{c:g.c,a:g.a,p:px}),accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#1c1c1e',guides=S.guides&&!Core.tooShort(h);
+ const px=buf?Array.from(buf).join(''):g.p,chk=Core.checkGlyph(f,{c:g.c,a:g.a,p:px}),cs=getComputedStyle(document.documentElement),accent=cs.getPropertyValue('--accent').trim()||'#1c1c1e',onAccent=cs.getPropertyValue('--on-accent').trim()||'#fff',guides=S.guides&&!Core.tooShort(h);
+ const stroke=(x1,y1,x2,y2,lw,dash)=>{ctx.setLineDash(dash);ctx.lineCap='butt';ctx.strokeStyle=onAccent;ctx.globalAlpha=.7;ctx.lineWidth=lw+3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.strokeStyle=accent;ctx.globalAlpha=.95;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.globalAlpha=1;ctx.setLineDash([]);};
+ const hline=(x1,x2,y,lw,dash)=>stroke(x1,y,x2,y,lw,dash),vline=(x,y2,lw,dash)=>stroke(x,0,x,y2,lw,dash);
  ctx.fillStyle=colors[0];ctx.fillRect(0,0,W,H);
  if(guides){const zs=Core.zonesFor(h);zs.forEach((z,i)=>{if(i===1)return;ctx.globalAlpha=.12;ctx.fillStyle='#3c3c43';ctx.fillRect(0,z.rows[0]*sc,W,(z.rows[1]-z.rows[0]+1)*sc);});ctx.globalAlpha=1;} /* marks and lower zones are tinted; the body stays clean */
  for(let i=0;i<w*h;i++){const v=code(px,i),x=i%w,y=(i-x)/w;if(!v&&(x+y)%2){ctx.fillStyle='rgba(128,128,128,.07)';ctx.fillRect(x*sc,y*sc,sc,sc);}if(v){ctx.fillStyle=colors[Math.min(v,3)];ctx.fillRect(x*sc,y*sc,sc,sc);}}
  if(guides){ /* rows this kind of character must not use: a quiet hatch */
   const [lo,hi]=chk.allowed;ctx.save();ctx.beginPath();if(lo>0)ctx.rect(0,0,W,lo*sc);if(hi<h-1)ctx.rect(0,(hi+1)*sc,W,(h-1-hi)*sc);ctx.clip();
   ctx.fillStyle='rgba(60,60,67,.14)';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(60,60,67,.28)';ctx.lineWidth=1;for(let d=-H;d<W;d+=8){ctx.beginPath();ctx.moveTo(d,H);ctx.lineTo(d+H,0);ctx.stroke();}ctx.restore();
-  const zs=Core.zonesFor(h);ctx.strokeStyle='rgba(60,60,67,.55)';ctx.lineWidth=1;ctx.setLineDash([3,3]);for(const y of [zs[0].rows[1]+1,zs[1].rows[1]+1]){ctx.beginPath();ctx.moveTo(0,y*sc);ctx.lineTo(W,y*sc);ctx.stroke();}ctx.setLineDash([]);
-  ctx.strokeStyle='rgba(60,60,67,.75)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,(zs[1].rows[1]+1)*sc);ctx.lineTo(W,(zs[1].rows[1]+1)*sc);ctx.stroke();}
+  const zs=Core.zonesFor(h);for(const y of [zs[0].rows[1]+1,zs[1].rows[1]+1])hline(0,W,y*sc,2,y===zs[1].rows[1]+1?[]:[8,5]);}
  if(S.grid){ctx.lineWidth=1;for(let x=1;x<w;x++){ctx.strokeStyle=x%8?'rgba(128,128,128,.25)':'rgba(128,128,128,.6)';ctx.beginPath();ctx.moveTo(x*sc+.5,0);ctx.lineTo(x*sc+.5,H);ctx.stroke();}
   for(let y=1;y<h;y++){ctx.strokeStyle=y%8?'rgba(128,128,128,.25)':'rgba(128,128,128,.6)';ctx.beginPath();ctx.moveTo(0,y*sc+.5);ctx.lineTo(w*sc,y*sc+.5);ctx.stroke();}}
  ctx.strokeStyle='#ff3b30';ctx.lineWidth=2;for(const i of chk.bad)ctx.strokeRect((i%w)*sc+1,Math.floor(i/w)*sc+1,sc-2,sc-2);
- ctx.strokeStyle=accent;ctx.globalAlpha=.8;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;const ax=g.a*sc;ctx.beginPath();ctx.moveTo(ax,0);ctx.lineTo(ax,H);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+ {const ax=g.a*sc;vline(ax,H,2.5,[7,4]);ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(ax-6,0);ctx.lineTo(ax+6,0);ctx.lineTo(ax,8);ctx.fill();} /* advance marker */
  showCheck(chk,f);}
 function showCheck(chk,f){const el=$('#s-check');if(!el)return;
  if(!S.guides||Core.tooShort(f.h)){el.className='check';el.textContent=Core.tooShort(f.h)?'ช่องสูงไม่ถึง 12 px · ไม่มีไกด์สระ/วรรณยุกต์':'ไกด์ปิดอยู่';return;}

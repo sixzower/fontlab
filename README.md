@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.33** Clearer guide lines in the studio: the advance line and zone boundaries are thicker, use the theme colour with a contrasting halo (visible on any console palette) and the advance line has an arrow marker.
 - **1.0.32** Cloud upload is manual by default: edits are kept in the browser and the cloud dot turns orange (“not on the cloud yet”); pressing save (or “add as new font”, or “sync now”) uploads. Page load only pulls newer fonts and never pushes. Auto upload after edits is an opt-in switch in the cloud sheet.
 - **1.0.31** Undo/redo moved from the top bar to the tools row under the canvas; guides use quiet greys (tinted mark/lower zones, hatched forbidden rows, thin baseline) instead of orange/green/purple/red bands.
 - **1.0.30** iOS-style tooltips on every icon-only button (hover or keyboard focus), with the short name only.
