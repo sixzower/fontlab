@@ -68,6 +68,8 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  const shadows=()=>page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);return f.glyphs.filter(g=>g.p.includes('2')).length;});
  const before=await shadows();await page.click('#sh-go');const after=await shadows();assert.ok(after>before,'shadow pixels were added ('+before+' -> '+after+')');
  await page.click('#u-undo');assert.strictEqual(await shadows(),before,'one undo removes every shadow');await page.click('#u-redo');assert.strictEqual(await shadows(),after,'redo restores them');
+ await page.click('[data-act=shadow]');await page.click('#sh-scope [data-s=all]');assert.ok(/ลบเงาทั้งหมด \(\d+ อักษร/.test(await page.locator('#sh-rm').innerText()),'remove button counts shadows');
+ await page.click('#sh-rm');assert.strictEqual(await shadows(),0,'all shadows removed in one step');await page.click('#u-undo');assert.strictEqual(await shadows(),after,'undo brings them back');
  /* built-in is read only, duplicate to edit */
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-sword-shield-th]');
  await page.click('#edit');assert.ok(await page.locator('.toast.on').count(),'read-only toast');

@@ -33,7 +33,7 @@ const CONSOLES=[
  {id:'gbc',name:'Game Boy Color',short:'GBC',maker:'Nintendo',year:1998,formats:{2:'gb2'},bpp:2,cell:[8, 16],cells:[[8, 8], [8, 16], [16, 16]],colors:['#f4f1e8', '#2b2d42', '#8d99ae', '#ef476f'],tint:'#8e5bd6',icon:'handheld-v',group:'handheld',kind:'tile',notes:'รูปแบบไทล์เหมือน Game Boy แต่แต่ละพาเลตมีสีของตัวเอง ดัชนี 0 ใช้เป็นพื้นโปร่ง'},
  {id:'gba',name:'Game Boy Advance',short:'GBA',maker:'Nintendo',year:2001,formats:{4:'gba4'},bpp:4,cell:[16, 16],cells:[[8, 16], [16, 16], [16, 12], [12, 12]],colors:['#e9e4f5', '#2d2a4a', '#8a82c4', '#ff6b6b'],tint:'#6d4fd6',icon:'handheld-w',group:'handheld',kind:'tile',notes:'4 บิตแบบ packed พิกเซลซ้ายอยู่ nibble ล่าง ฟอนต์ Pokémon ไทยในคลังเป็นกริด 16×16 พร้อมเงา'},
  {id:'nds',name:'Nintendo DS',short:'DS',maker:'Nintendo',year:2004,formats:{4:'gba4'},bpp:4,cell:[16, 16],cells:[[8, 16], [16, 16], [12, 12]],colors:['#f2f2f7', '#1c1c1e', '#8e8e93', '#34c759'],tint:'#9ea3ad',icon:'dual',group:'handheld',kind:'tile',notes:'ไทล์ 4 บิตแบบเดียวกับ GBA ใช้กับ NCGR/NFTR หลังแปลงผ่านเครื่องมือภายนอก'},
- {id:'psp',name:'PlayStation Portable',short:'PSP',maker:'Sony',year:2004,formats:{4:'lin4',8:'lin8'},bpp:4,cell:[16, 16],cells:[[16, 16], [24, 24], [32, 32]],colors:['#101418', '#f4f6f8', '#7f8a96', '#3ddc97'],tint:'#2b2f3a',icon:'handheld-w',group:'handheld',kind:'texture',notes:'ฟอนต์ของเครื่องนี้มักเป็นเท็กซ์เจอร์ที่แต่ละเกมจัดรูปแบบต่างกัน ไบนารีที่ส่งออกเป็นบิตแมปเส้นตรงทั่วไป ไม่ใช่รูปแบบเฉพาะเครื่อง ใช้ PNG sheet เป็นหลักแล้วแปลงด้วยเครื่องมือของเกมนั้น'},
+ {id:'psp',name:'PlayStation Portable',short:'PSP',maker:'Sony',year:2004,formats:{4:'lin4',8:'lin8'},bpp:4,cell:[16, 16],cells:[[16, 16], [24, 24], [32, 32]],colors:['#101418', '#f4f6f8', '#7f8a96', '#3ddc97'],tint:'#2b2f3a',icon:'handheld-w',group:'handheld',kind:'texture',notes:'ฟอนต์ของเครื่องนี้มักเป็นเท็กซ์เจอร์ที่แต่ละเกมจัดรูปแบบต่างกัน ไบนารีที่ส่งออกเป็นบิตแมปเส้นตรงทั่วไป ไม่ใช่รูปแบบเฉพาะเครื่อง ใช้ PNG sheet เป็นหลักแล้วแปลงด้วยเครื่องมือของเกมนั้น เกมจำนวนมากบนเครื่องนี้ใช้ฟอนต์เวกเตอร์หรือภาพลบรอยหยักที่ไม่ใช่พิกเซลล้วน ซึ่งต้องตรวจก่อนว่าเกมใช้แบบไหน'},
  {id:'gg',name:'Game Gear',short:'GG',maker:'Sega',year:1990,formats:{4:'sms4'},bpp:4,cell:[8, 16],cells:[[8, 8], [8, 16]],colors:['#101820', '#f8f8f8', '#6f8fbf', '#e0584a'],tint:'#4f6fe0',icon:'handheld-w',group:'handheld',kind:'tile',notes:'4 บิต planar แบบเดียวกับ Master System (4 ไบต์ต่อ 1 แถวพิกเซล)'},
  {id:'ngp',name:'Neo Geo Pocket',short:'NGP',maker:'SNK',year:1998,formats:{4:'lin4',8:'lin8'},bpp:4,cell:[8, 16],cells:[[8, 8], [8, 16], [16, 16]],colors:['#121814', '#f2f5ef', '#7d8f80', '#ff6f4d'],tint:'#e8684a',icon:'handheld-w',group:'handheld',kind:'generic',notes:'เครื่องใช้ไทล์ 8×8 แบบ 2 บิตของตัวเอง ที่นี่ส่งออกเป็นบิตแมปเส้นตรงทั่วไป ใช้ PNG sheet เป็นหลัก'},
  {id:'ws',name:'WonderSwan',short:'WS',maker:'Bandai',year:1999,formats:{2:'gb2'},bpp:2,cell:[8, 16],cells:[[8, 8], [8, 16]],colors:['#dfe7e2', '#14201a', '#6f8478', '#2fa58b'],tint:'#2fa58b',icon:'handheld-v',group:'handheld',kind:'tile',notes:'โหมดขาวดำใช้ไทล์ 2 บิตแบบ planar ใกล้เคียง Game Boy ตรวจกับตัวเกมก่อนนำไปแทนที่'},
@@ -93,6 +93,9 @@ function addShadow(pr,g,dir,{clear=true}={}){
  const p=out.join(''),marks=['upper','tone','lower','cluster'].includes(classOf(g.c));
  let a=g.a;if(!marks&&maxCol>=a)a=Math.min(w,maxCol+1);
  return{p,a,added,clipped,changed:p!==g.p||a!==g.a};}
+
+/* remove every shadow pixel (index 2); the advance is left as it is */
+function removeShadow(g){const p=g.p.replace(/2/g,'0');return{p,a:g.a,removed:(g.p.match(/2/g)||[]).length,changed:p!==g.p};}
 
 /* ---------- charset ---------- */
 const THAI=' กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮฯะัาำิีึืฺุู฿เแโใไๅๆ็่้๊๋์ํ๎0123456789';
@@ -215,6 +218,6 @@ function zip(files){const enc=new TextEncoder(),parts=[],central=[];let off=0;
  const csize=central.reduce((n,p)=>n+p.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,csize,true);end.setUint32(16,off,true);
  const all=[...parts,...central,new Uint8Array(end.buffer)],out=new Uint8Array(all.reduce((n,p)=>n+p.length,0));let o=0;for(const p of all){out.set(p,o);o+=p.length;}return out;}
 
-return{SHADOW_DIRS,addShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
+return{SHADOW_DIRS,addShadow,removeShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
  bytesPerGlyph,exportBank,importBank,sheetSize,renderSheet,readSheet,layoutText,readme,zip,crc32,uid};
 });
