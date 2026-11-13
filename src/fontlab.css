@@ -182,3 +182,5 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .cdot.dirty{background:var(--orange)}
 /* keep the whole tools row on one line on phones */
 .tools{gap:6px}.tools .seg button{min-width:40px;padding:0 6px}.tools .tgl{min-width:36px;padding:0}
+
+.tools{gap:4px}.tools .seg button{min-width:38px}.tools .tgl{min-width:34px}

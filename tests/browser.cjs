@@ -74,6 +74,10 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('[data-act=shadow]');await page.click('#sh-scope [data-s=all]');assert.ok(/ลบเงาทั้งหมด \(\d+ อักษร/.test(await page.locator('#sh-rm').innerText()),'remove button counts shadows');
  await page.click('#sh-rm');assert.strictEqual(await shadows(),0,'all shadows removed in one step');await page.click('#u-undo');assert.strictEqual(await shadows(),after,'undo brings them back');
  assert.ok(await page.evaluate(()=>!!document.querySelector('.tools #u-undo')&&!document.querySelector('.nav #u-undo')),'undo/redo live in the tools row, not the top bar');
+ /* zone labels toggle */
+ await page.locator('[data-act=labels]').scrollIntoViewIfNeeded();await page.click('[data-act=labels]');assert.strictEqual(await page.locator('[data-act=labels]').getAttribute('aria-pressed'),'true');assert.strictEqual(await page.locator('[data-act=guides]').getAttribute('aria-pressed'),'true','labels switch the guides on');
+ assert.ok(await page.evaluate(()=>{const t=['grid','guides','labels'].map(a=>document.querySelector('[data-act='+a+']').getBoundingClientRect().top);return t.every(v=>Math.abs(v-t[0])<4);}),'grid / guides / labels stay together as one group');
+ await page.click('[data-act=labels]');assert.strictEqual(await page.locator('[data-act=labels]').getAttribute('aria-pressed'),'false');
  /* explicit save + auto spacing */
  await page.locator('#u-save').scrollIntoViewIfNeeded();await page.click('#u-save');await page.waitForFunction(()=>/บันทึกแล้ว ✓/.test(document.querySelector('.toast')?.textContent||''),null,{timeout:8000});
  await page.waitForFunction(()=>/✓ บันทึกในเครื่องแล้ว/.test(document.querySelector('#s-saved')?.textContent||''),null,{timeout:8000});
