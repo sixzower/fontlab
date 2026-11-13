@@ -61,6 +61,13 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('[data-tool=pencil]');await page.click('[data-color="1"]');
  await page.locator('#edit').evaluate(e=>e.scrollIntoView({block:'center'}));const b2=await page.locator('#edit').boundingBox();await page.mouse.click(b2.x+10,b2.y+8);assert.ok(/เกินเขต/.test(await page.locator('#s-check').innerText()),'row 0 flagged for a consonant');
  await page.click('[data-act=check-all]');assert.ok(await page.locator('.sheet [data-jump]').count()>=1,'check-all lists the glyph');await page.keyboard.press('Escape');
+ /* automatic shadow: one undo step for the whole font */
+ await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);f.glyphs[2].p=f.glyphs[2].p.replace(/^0{20}/,'0'.repeat(9)+'1'+'0'.repeat(10));});
+ await page.locator('[data-act=shadow]').scrollIntoViewIfNeeded();await page.click('[data-act=shadow]');await page.click('#sh-scope [data-s=all]');
+ assert.ok(/จะเปลี่ยน \d+ จาก/.test(await page.locator('#sh-info').innerText()),'preview counts shown');
+ const shadows=()=>page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);return f.glyphs.filter(g=>g.p.includes('2')).length;});
+ const before=await shadows();await page.click('#sh-go');const after=await shadows();assert.ok(after>before,'shadow pixels were added ('+before+' -> '+after+')');
+ await page.click('#u-undo');assert.strictEqual(await shadows(),before,'one undo removes every shadow');await page.click('#u-redo');assert.strictEqual(await shadows(),after,'redo restores them');
  /* built-in is read only, duplicate to edit */
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-sword-shield-th]');
  await page.click('#edit');assert.ok(await page.locator('.toast.on').count(),'read-only toast');

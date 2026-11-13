@@ -78,6 +78,22 @@ function checkGlyph(pr,g){const cls=classOf(g.c),allowed=zoneRows(pr.h,ALLOWED[c
  return{cls,allowed,used:hi<0?null:[lo,hi],bad,tooWide:over,ok:!bad.length&&!over};}
 function checkFont(pr){return pr.glyphs.map((g,i)=>({i,g,r:checkGlyph(pr,g)})).filter(x=>!x.r.ok);}
 
+/* ---------- automatic shadow ----------
+   Ink is colour index 1, shadow is index 2. A shadow pixel is placed one step from every ink pixel in the chosen
+   direction, only on empty cells inside the glyph box. Letters that would end up wider than their advance get a
+   wider advance (up to the cell width); vowel/tone marks keep theirs. */
+const SHADOW_DIRS={'down-right':[1,1],'down':[0,1],'right':[1,0],'down-left':[-1,1]};
+function addShadow(pr,g,dir,{clear=true}={}){
+ const [dx,dy]=SHADOW_DIRS[dir]||SHADOW_DIRS['down-right'],w=pr.w,h=pr.h,src=Array.from(g.p,Number);
+ if(clear)for(let i=0;i<src.length;i++)if(src[i]===2)src[i]=0;
+ const out=src.slice();let clipped=0,maxCol=-1,added=0;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(src[y*w+x]!==1)continue;const nx=x+dx,ny=y+dy;
+  if(nx<0||ny<0||nx>=w||ny>=h){clipped++;continue;}
+  if(src[ny*w+nx]===0&&out[ny*w+nx]!==2){out[ny*w+nx]=2;added++;maxCol=Math.max(maxCol,nx);}}
+ const p=out.join(''),marks=['upper','tone','lower','cluster'].includes(classOf(g.c));
+ let a=g.a;if(!marks&&maxCol>=a)a=Math.min(w,maxCol+1);
+ return{p,a,added,clipped,changed:p!==g.p||a!==g.a};}
+
 /* ---------- charset ---------- */
 const THAI=' กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮฯะัาำิีึืฺุู฿เแโใไๅๆ็่้๊๋์ํ๎0123456789';
 const LATIN='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -199,6 +215,6 @@ function zip(files){const enc=new TextEncoder(),parts=[],central=[];let off=0;
  const csize=central.reduce((n,p)=>n+p.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,csize,true);end.setUint32(16,off,true);
  const all=[...parts,...central,new Uint8Array(end.buffer)],out=new Uint8Array(all.reduce((n,p)=>n+p.length,0));let o=0;for(const p of all){out.set(p,o);o+=p.length;}return out;}
 
-return{CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
+return{SHADOW_DIRS,addShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
  bytesPerGlyph,exportBank,importBank,sheetSize,renderSheet,readSheet,layoutText,readme,zip,crc32,uid};
 });
