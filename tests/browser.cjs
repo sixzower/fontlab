@@ -181,12 +181,13 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('.tab[data-tab=library]');
  assert.ok(await page.locator('.side-sec [data-recent]').count()>=1,'recent fonts are listed in the sidebar');assert.ok(/เวอร์ชัน \d/.test(await page.locator('.side-ver').innerText()),'sidebar shows the version');assert.ok((await page.locator('[data-cloud-text]').first().innerText()).length>3,'sidebar shows the cloud status');
  await page.locator('[data-sidefilter]').first().click();assert.strictEqual(await page.evaluate(()=>FontLabApp.S.tab),'library');assert.ok(await page.locator('.side-item.on').count()>=1,'console filter highlighted');await page.locator('[data-sidefilter]').first().click();
+ assert.ok(!(await page.locator('#page-library [data-act=new]').isVisible()),'no duplicate new-font icon in the top bar on wide screens');assert.strictEqual(await page.locator('.side-foot [data-act=theme]').count(),0,'theme toggle only at the top right');
  await page.locator('.sq[data-act=new]').click();assert.ok(await page.locator('.sheet .bar-title').count(),'quick action opens the new-font sheet');await page.keyboard.press('Escape');
  await page.click('.tab[data-tab=settings]');assert.ok(/ตั้งค่า/.test(await page.locator('#page-settings h1').innerText()));
  await page.click('#set-theme [data-m=dark]');assert.strictEqual(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');await page.click('#set-theme [data-m=system]');assert.strictEqual(await page.evaluate(()=>document.documentElement.dataset.theme||'system'),'system');
  await page.click('#set-auto');assert.strictEqual(await page.locator('#set-auto').getAttribute('aria-checked'),'true');await page.click('#set-auto');
  await page.locator('#page-settings .sel').first().click();await page.click('.menu [role=option]:has-text("Super Famicom")');assert.strictEqual(await page.evaluate(()=>localStorage.getItem('fontlab.defaultConsole')),'snes');
- await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=new]');assert.strictEqual(await page.locator('#nf-con').inputValue(),'snes','default console used for new fonts');await page.keyboard.press('Escape');
+ await page.click('.tab[data-tab=library]');await page.click('.sq[data-act=new]');assert.strictEqual(await page.locator('#nf-con').inputValue(),'snes','default console used for new fonts');await page.keyboard.press('Escape');
  await page.click('.tab[data-tab=settings]');await page.click('#set-clear');assert.ok(/ลบข้อมูลฟอนต์ในเครื่อง/.test(await page.locator('.sheet').innerText()),'clear-local asks first');await page.keyboard.press('Escape');
  await browser.close();server.close();
  const real=errors.filter(e=>!/Failed to load resource/.test(e));assert.deepStrictEqual(real,[],'console errors');

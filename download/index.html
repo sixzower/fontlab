@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="1.0.43">
+<meta name="app-version" content="1.0.44">
 <title>FontLab</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzYTNhM2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwYTBhMGIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNC41IiBmaWxsPSJ1cmwoI2cpIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoNDUgMzIgMjgpIj48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iMzAiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iI2ZmOWYwYSIvPjxwYXRoIGQ9Ik0yOCAzNmg4bC00IDl6IiBmaWxsPSIjZDFkMWQ2Ii8+PHBhdGggZD0iTTMwLjUgNDEuNWgzbC0xLjUgMy41eiIgZmlsbD0iIzFjMWMxZSIvPjwvZz48cmVjdCB4PSIxNCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyMCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyNiIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii41Ii8+PC9zdmc+Cg==">
 <meta name="apple-mobile-web-app-title" content="FontLab">
@@ -239,6 +239,8 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
  .side-status{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:0 10px;border-radius:9px;text-align:left;font-size:13px;color:var(--label2)}.side-status:hover{background:var(--fill)}.side-status span{flex:1;min-width:0}
  .side-row{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 6px}.side-ver{font-size:12px;color:var(--label2)}
 }
+
+@media(min-width:900px){.dup-side{display:none}.side-row{justify-content:flex-start;padding-left:10px}}
 </style>
 </head>
 <body>
@@ -509,9 +511,9 @@ const FontLabCloud=(()=>{
  const newCode=()=>setCode(hex(32));
  const persistent=()=>{try{return localStorage.getItem(KEY)===mem&&valid(mem);}catch{return false;}};
  function explain(res,body){const m=body?.message||body?.hint||body?.error||'';
-  if(res.status===404||/Could not find the function|PGRST202|does not exist/i.test(m))return'ยังไม่ได้ติดตั้ง SQL บน Supabase — เปิดหน้าสำรองข้อมูลแล้วคัดลอก SQL ไปรันครั้งเดียว';
-  if(/Backup limit/i.test(m))return'ถึงขีดจำกัด 500 ฟอนต์ต่อรหัสแล้ว';if(/Invalid/i.test(m))return'คำขอไม่ถูกต้อง';return m||'เกิดข้อผิดพลาด ('+res.status+')';}
- async function rpc(name,args){let res;try{res=await fetch(cfg().url+'/rest/v1/rpc/'+name,{method:'POST',credentials:'omit',cache:'no-store',headers:{apikey:cfg().key,'Content-Type':'application/json'},body:JSON.stringify(args)});}catch{throw Error('ติดต่อ Supabase ไม่ได้ (ออฟไลน์?) จะลองใหม่เมื่อมีการบันทึกครั้งถัดไป');}
+  if(res.status===404||/Could not find the function|PGRST202|does not exist/i.test(m))return'ยังไม่ได้ติดตั้ง SQL บนคลาวด์';
+  if(/Backup limit/i.test(m))return'เกิน 500 ฟอนต์ต่อรหัส';if(/Invalid/i.test(m))return'คำขอไม่ถูกต้อง';return m||'เกิดข้อผิดพลาด ('+res.status+')';}
+ async function rpc(name,args){let res;try{res=await fetch(cfg().url+'/rest/v1/rpc/'+name,{method:'POST',credentials:'omit',cache:'no-store',headers:{apikey:cfg().key,'Content-Type':'application/json'},body:JSON.stringify(args)});}catch{throw Error('ติดต่อคลาวด์ไม่ได้');}
   const text=await res.text();let json=null;try{json=text?JSON.parse(text):null;}catch{}if(!res.ok)throw Error(explain(res,json));return json;}
  const row=f=>({font_id:f.id,name:f.name,console:f.console,width:f.w,height:f.h,bpp:f.bpp,glyph_count:f.glyphs.length,data:f,updated_at:new Date(f.updatedAt||Date.now()).toISOString()});
  const listMeta=async()=>await rpc('fontlab_list',{p_code:code()})||[];
@@ -693,7 +695,7 @@ function renderTabs(){
   +TABS.map(([id,l])=>'<button class="tab" data-tab="'+id+'"'+(S.tab===id?' aria-current="page"':'')+'>'+ic(id)+'<span>'+l+'</span></button>').join('')
   +(recents.length?'<div class="side-sec side-extra"><h3>ล่าสุด</h3>'+recents.map(f=>'<button class="side-item'+(S.tab==='studio'&&S.cur===f.id?' on':'')+'" data-recent="'+f.id+'" title="'+esc(f.name)+'"><span class="tag" style="background:'+consoleColor(f.console)+'">'+Core.consoleOf(f.console).short+'</span><span class="nm">'+esc(f.name)+'</span></button>').join('')+'</div>':'')
   +(cons.length?'<div class="side-sec side-extra"><h3>เครื่อง</h3>'+cons.map(c=>'<button class="side-item'+(S.tab==='library'&&S.filter===c.id?' on':'')+'" data-sidefilter="'+c.id+'"><span class="tag" style="background:'+c.tint+'">'+c.short+'</span><span class="nm">'+esc(c.name)+'</span><span class="ct">'+counts.get(c.id)+'</span></button>').join('')+'</div>':'')
-  +'<div class="side-foot side-extra"><button class="side-status" data-act="cloud" aria-label="สำรองบนคลาวด์"><i class="cdot '+S.cloud.state+'"></i><span data-cloud-text>'+esc(cloudText())+'</span></button><div class="side-row"><button class="icon-btn" data-act="theme" aria-label="เปลี่ยนโหมดสี">'+ic(isDark()?'sun':'moon')+'</button><span class="side-ver">เวอร์ชัน '+esc(appVersion())+'</span></div></div>';}
+  +'<div class="side-foot side-extra"><button class="side-status" data-act="cloud" aria-label="สำรองบนคลาวด์"><i class="cdot '+S.cloud.state+'"></i><span data-cloud-text>'+esc(cloudText())+'</span></button><div class="side-row"><span class="side-ver">เวอร์ชัน '+esc(appVersion())+'</span></div></div>';}
 function go(tab,{push=true}={}){S.tab=tab;$$('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+tab));renderTabs();if(push)try{history.replaceState(null,'','#'+tab);}catch{}scrollTo(0,0);
  const draw={library:renderLibrary,consoles:renderConsoles,studio:mountStudio,settings:renderSettings}[tab];
  try{draw();}catch(e){console.error(e);$('#page-'+tab).innerHTML='<div class="empty"><h2>เปิดหน้านี้ไม่สำเร็จ</h2>'+esc(e.message)+'</div>';}}
@@ -719,7 +721,7 @@ function renderLibrary(){try{renderTabs();}catch{}
  const q=S.query.trim().toLowerCase(),match=f=>(S.filter==='all'||f.console===S.filter)&&(!q||f.name.toLowerCase().includes(q)||Core.consoleOf(f.console).name.toLowerCase().includes(q));
  const mine=all.filter(f=>!isStarter(f)&&match(f)).sort((a,b)=>b.updatedAt-a.updatedAt),built=all.filter(f=>isStarter(f)&&match(f));
  const el=$('#page-library'),keep=$('#q'),hadFocus=document.activeElement===keep;
- el.innerHTML=nav('คลังฟอนต์','<button class="icon-btn" data-act="import" aria-label="นำเข้า">'+ic('download')+'</button><button class="icon-btn" data-act="new" aria-label="สร้างฟอนต์ใหม่">'+ic('plus')+'</button>')
+ el.innerHTML=nav('คลังฟอนต์','<button class="icon-btn dup-side" data-act="import" aria-label="นำเข้า">'+ic('download')+'</button><button class="icon-btn dup-side" data-act="new" aria-label="สร้างฟอนต์ใหม่">'+ic('plus')+'</button>')
   +'<div class="large"><h1>คลังฟอนต์</h1><p>ฟอนต์บิตแมปสำหรับเกมบนเอมูเลเตอร์ทุกเครื่อง</p></div>'
   +'<label class="search">'+ic('search')+'<input id="q" type="search" placeholder="ค้นหาฟอนต์หรือเครื่อง" value="'+esc(S.query)+'" aria-label="ค้นหา"></label>'
   +'<div class="chips" role="group" aria-label="กรองตามเครื่อง"><button class="chip" aria-pressed="'+(S.filter==='all')+'" data-filter="all">ทั้งหมด '+all.length+'</button>'

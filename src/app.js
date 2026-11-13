@@ -158,7 +158,7 @@ function renderTabs(){
   +TABS.map(([id,l])=>'<button class="tab" data-tab="'+id+'"'+(S.tab===id?' aria-current="page"':'')+'>'+ic(id)+'<span>'+l+'</span></button>').join('')
   +(recents.length?'<div class="side-sec side-extra"><h3>ล่าสุด</h3>'+recents.map(f=>'<button class="side-item'+(S.tab==='studio'&&S.cur===f.id?' on':'')+'" data-recent="'+f.id+'" title="'+esc(f.name)+'"><span class="tag" style="background:'+consoleColor(f.console)+'">'+Core.consoleOf(f.console).short+'</span><span class="nm">'+esc(f.name)+'</span></button>').join('')+'</div>':'')
   +(cons.length?'<div class="side-sec side-extra"><h3>เครื่อง</h3>'+cons.map(c=>'<button class="side-item'+(S.tab==='library'&&S.filter===c.id?' on':'')+'" data-sidefilter="'+c.id+'"><span class="tag" style="background:'+c.tint+'">'+c.short+'</span><span class="nm">'+esc(c.name)+'</span><span class="ct">'+counts.get(c.id)+'</span></button>').join('')+'</div>':'')
-  +'<div class="side-foot side-extra"><button class="side-status" data-act="cloud" aria-label="สำรองบนคลาวด์"><i class="cdot '+S.cloud.state+'"></i><span data-cloud-text>'+esc(cloudText())+'</span></button><div class="side-row"><button class="icon-btn" data-act="theme" aria-label="เปลี่ยนโหมดสี">'+ic(isDark()?'sun':'moon')+'</button><span class="side-ver">เวอร์ชัน '+esc(appVersion())+'</span></div></div>';}
+  +'<div class="side-foot side-extra"><button class="side-status" data-act="cloud" aria-label="สำรองบนคลาวด์"><i class="cdot '+S.cloud.state+'"></i><span data-cloud-text>'+esc(cloudText())+'</span></button><div class="side-row"><span class="side-ver">เวอร์ชัน '+esc(appVersion())+'</span></div></div>';}
 function go(tab,{push=true}={}){S.tab=tab;$$('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+tab));renderTabs();if(push)try{history.replaceState(null,'','#'+tab);}catch{}scrollTo(0,0);
  const draw={library:renderLibrary,consoles:renderConsoles,studio:mountStudio,settings:renderSettings}[tab];
  try{draw();}catch(e){console.error(e);$('#page-'+tab).innerHTML='<div class="empty"><h2>เปิดหน้านี้ไม่สำเร็จ</h2>'+esc(e.message)+'</div>';}}
@@ -184,7 +184,7 @@ function renderLibrary(){try{renderTabs();}catch{}
  const q=S.query.trim().toLowerCase(),match=f=>(S.filter==='all'||f.console===S.filter)&&(!q||f.name.toLowerCase().includes(q)||Core.consoleOf(f.console).name.toLowerCase().includes(q));
  const mine=all.filter(f=>!isStarter(f)&&match(f)).sort((a,b)=>b.updatedAt-a.updatedAt),built=all.filter(f=>isStarter(f)&&match(f));
  const el=$('#page-library'),keep=$('#q'),hadFocus=document.activeElement===keep;
- el.innerHTML=nav('คลังฟอนต์','<button class="icon-btn" data-act="import" aria-label="นำเข้า">'+ic('download')+'</button><button class="icon-btn" data-act="new" aria-label="สร้างฟอนต์ใหม่">'+ic('plus')+'</button>')
+ el.innerHTML=nav('คลังฟอนต์','<button class="icon-btn dup-side" data-act="import" aria-label="นำเข้า">'+ic('download')+'</button><button class="icon-btn dup-side" data-act="new" aria-label="สร้างฟอนต์ใหม่">'+ic('plus')+'</button>')
   +'<div class="large"><h1>คลังฟอนต์</h1><p>ฟอนต์บิตแมปสำหรับเกมบนเอมูเลเตอร์ทุกเครื่อง</p></div>'
   +'<label class="search">'+ic('search')+'<input id="q" type="search" placeholder="ค้นหาฟอนต์หรือเครื่อง" value="'+esc(S.query)+'" aria-label="ค้นหา"></label>'
   +'<div class="chips" role="group" aria-label="กรองตามเครื่อง"><button class="chip" aria-pressed="'+(S.filter==='all')+'" data-filter="all">ทั้งหมด '+all.length+'</button>'

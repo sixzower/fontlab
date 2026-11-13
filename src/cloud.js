@@ -9,9 +9,9 @@ const FontLabCloud=(()=>{
  const newCode=()=>setCode(hex(32));
  const persistent=()=>{try{return localStorage.getItem(KEY)===mem&&valid(mem);}catch{return false;}};
  function explain(res,body){const m=body?.message||body?.hint||body?.error||'';
-  if(res.status===404||/Could not find the function|PGRST202|does not exist/i.test(m))return'ยังไม่ได้ติดตั้ง SQL บน Supabase — เปิดหน้าสำรองข้อมูลแล้วคัดลอก SQL ไปรันครั้งเดียว';
-  if(/Backup limit/i.test(m))return'ถึงขีดจำกัด 500 ฟอนต์ต่อรหัสแล้ว';if(/Invalid/i.test(m))return'คำขอไม่ถูกต้อง';return m||'เกิดข้อผิดพลาด ('+res.status+')';}
- async function rpc(name,args){let res;try{res=await fetch(cfg().url+'/rest/v1/rpc/'+name,{method:'POST',credentials:'omit',cache:'no-store',headers:{apikey:cfg().key,'Content-Type':'application/json'},body:JSON.stringify(args)});}catch{throw Error('ติดต่อ Supabase ไม่ได้ (ออฟไลน์?) จะลองใหม่เมื่อมีการบันทึกครั้งถัดไป');}
+  if(res.status===404||/Could not find the function|PGRST202|does not exist/i.test(m))return'ยังไม่ได้ติดตั้ง SQL บนคลาวด์';
+  if(/Backup limit/i.test(m))return'เกิน 500 ฟอนต์ต่อรหัส';if(/Invalid/i.test(m))return'คำขอไม่ถูกต้อง';return m||'เกิดข้อผิดพลาด ('+res.status+')';}
+ async function rpc(name,args){let res;try{res=await fetch(cfg().url+'/rest/v1/rpc/'+name,{method:'POST',credentials:'omit',cache:'no-store',headers:{apikey:cfg().key,'Content-Type':'application/json'},body:JSON.stringify(args)});}catch{throw Error('ติดต่อคลาวด์ไม่ได้');}
   const text=await res.text();let json=null;try{json=text?JSON.parse(text):null;}catch{}if(!res.ok)throw Error(explain(res,json));return json;}
  const row=f=>({font_id:f.id,name:f.name,console:f.console,width:f.w,height:f.h,bpp:f.bpp,glyph_count:f.glyphs.length,data:f,updated_at:new Date(f.updatedAt||Date.now()).toISOString()});
  const listMeta=async()=>await rpc('fontlab_list',{p_code:code()})||[];
