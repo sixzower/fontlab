@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="1.0.49">
+<meta name="app-version" content="1.0.50">
 <title>FontLab</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzYTNhM2MiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwYTBhMGIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNC41IiBmaWxsPSJ1cmwoI2cpIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoNDUgMzIgMjgpIj48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iMzAiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyOCIgeT0iNiIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iI2ZmOWYwYSIvPjxwYXRoIGQ9Ik0yOCAzNmg4bC00IDl6IiBmaWxsPSIjZDFkMWQ2Ii8+PHBhdGggZD0iTTMwLjUgNDEuNWgzbC0xLjUgMy41eiIgZmlsbD0iIzFjMWMxZSIvPjwvZz48cmVjdCB4PSIxNCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyMCIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyNiIgeT0iNTAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii41Ii8+PC9zdmc+Cg==">
 <meta name="apple-mobile-web-app-title" content="FontLab">
@@ -1039,10 +1039,14 @@ function spacingSheet(){const f=editable();if(!f)return guardEdit();let gap=1,sc
   $('#sp-go',s).onclick=()=>{const ch=[];for(const i of targets()){const g=f.glyphs[i],r=Core.autoSpacing(f,g,gap);if(r.changed)ch.push({i,p:g.p,a:r.a});}applyMany(ch);closeSheet();toast('จัดระยะให้ '+ch.length+' อักษรแล้ว · ย้อนกลับได้');};
   refresh();});}
 function addGlyphSheet(){if(!guardEdit())return;
- sheet('<h2>เพิ่มอักษร</h2><p class="sub">พิมพ์หลายตัวติดกันได้ หรือคั่นด้วยเว้นวรรคเพื่อเพิ่มเป็นกลุ่ม เช่น <b>กิ ก่ ก้</b> (อักษรผสมใช้ภาพเดียวทั้งกลุ่ม)</p><div class="field"><input id="ag" class="input" aria-label="อักษรที่จะเพิ่ม" autofocus></div><button class="btn block" id="ag-ok" data-bar="เพิ่ม">เพิ่ม</button>',s=>{
-  $('#ag-ok',s).onclick=()=>{const raw=$('#ag',s).value.trim(),tokens=/\s/.test(raw)?raw.split(/\s+/):[...raw];let n=0;
-   if(!structChange(f=>{for(const t of tokens){if(!t||[...t].length>8||f.glyphs.some(g=>g.c===t)||f.glyphs.length>=2048)continue;f.glyphs.push({c:t,p:Core.blank(f.w,f.h),a:f.w});n++;}if(!n)return false;S.idx=f.glyphs.length-1;}))return toast('ไม่มีอักษรใหม่ที่เพิ่มได้ (ซ้ำหรือว่าง)');
+ sheet('<h2>เพิ่มอักษร</h2><p class="sub">พิมพ์หลายตัวติดกันได้ หรือคั่นด้วยเว้นวรรคเพื่อเพิ่มเป็นกลุ่ม เช่น <b>กิ ก่ ก้</b> (อักษรผสมใช้ภาพเดียวทั้งกลุ่ม)</p><div class="field"><input id="ag" class="input" aria-label="อักษรที่จะเพิ่ม" autofocus></div><div class="seg" role="group" aria-label="เพิ่มชุดอักษรสำเร็จรูป"><button data-set="ABCDEFGHIJKLMNOPQRSTUVWXYZ">A–Z</button><button data-set="abcdefghijklmnopqrstuvwxyz">a–z</button><button data-set="0123456789">0–9</button><button data-set=".,!?:;&#39;&quot;-()/+=%&amp;*#@">เครื่องหมาย</button></div><div class="group" style="margin-top:12px"><label class="row"><span class="grow">เติมภาพให้จากฟอนต์ไทย 8×16<small>ใช้ภาพพิกเซล A–Z a–z 0–9 และเครื่องหมายเป็นจุดเริ่ม แก้ต่อได้ ถ้าปิดจะได้ช่องว่าง</small></span><input type="checkbox" id="ag-fill" checked></label></div><button class="btn block" id="ag-ok" data-bar="เพิ่ม">เพิ่ม</button>',s=>{
+  [...s.querySelectorAll('[data-set]')].forEach(b=>b.onclick=()=>{const i=$('#ag',s),add=[...b.dataset.set].filter(c=>!i.value.includes(c)).join('');i.value=(i.value+add).replace(/\s+/g,'');i.focus();});
+  $('#ag-ok',s).onclick=()=>{const fill=$('#ag-fill',s).checked,raw=$('#ag',s).value.trim(),tokens=/\s/.test(raw)?raw.split(/\s+/):[...raw];let n=0;
+   if(!structChange(f=>{for(const t of tokens){if(!t||[...t].length>8||f.glyphs.some(g=>g.c===t)||f.glyphs.length>=2048)continue;const src=fill&&[...t].length===1&&seedGlyph(t);f.glyphs.push(src?{c:t,p:fitGlyph(src.p,8,16,f.w,f.h,f.bpp),a:Math.min(src.a,f.w)}:{c:t,p:Core.blank(f.w,f.h),a:f.w});n++;}if(!n)return false;S.idx=f.glyphs.length-1;}))return toast('ไม่มีอักษรใหม่ที่เพิ่มได้ (ซ้ำหรือว่าง)');
    closeSheet();toast('เพิ่ม '+n+' อักษร · ย้อนกลับได้');};});}
+/* ready-made pixels for A–Z, digits and punctuation come from the bundled public-domain 8×16 font */
+function seedGlyph(ch){const b=FontLabBuiltins.find(x=>x.id==='builtin-thai-8x16');return b&&b.glyphs.find(g=>g.c===ch&&!/[\u0E00-\u0E7F]/.test(ch));}
+function fitGlyph(p,w,h,nw,nh,bpp){let o='';const cap=(1<<bpp)-1;for(let y=0;y<nh;y++)for(let x=0;x<nw;x++)o+=x<w&&y<h?String(Math.min(+p[y*w+x],cap)):'0';return o;}
 /* manage the selected glyph: rename, reorder, delete */
 function glyphMenu(){const f=editable();if(!f)return guardEdit();const g=f.glyphs[S.idx],last=S.idx>=f.glyphs.length-1;
  sheet('<h2>จัดการอักษร “'+esc(glyphLabel(g))+'”</h2><p class="sub">ตำแหน่งที่ '+(S.idx+1)+' จาก '+f.glyphs.length+' · ลำดับมีผลกับไฟล์ไบนารีที่ส่งออก</p><div class="actions">'+action('เปลี่ยนชื่ออักษร','g-ren')+action('ย้ายไปก่อนหน้า','g-up',S.idx===0?'off':'')+action('ย้ายไปถัดไป','g-dn',last?'off':'')+action('ลบอักษรนี้','g-del','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
