@@ -30,7 +30,7 @@ const Store=(()=>{let db=null;const mem=new Map();
   put:async f=>{mem.set(f.id,f);if(db)await tx('readwrite',s=>s.put(f));},del:async id=>{mem.delete(id);if(db)await tx('readwrite',s=>s.delete(id));},persistent:()=>!!db};})();
 
 /* ---------- state ---------- */
-const S={guides:true,fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloudBusy:false,cloudMsg:'',lastSync:null,auto:(()=>{try{return localStorage.getItem('fontlab.auto')!=='no';}catch{return true;}})()};
+const S={guides:true,fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloud:{state:'idle',msg:'',last:null,count:0,warned:false}};
 const userFonts=()=>[...S.fonts.values()].filter(f=>!f.builtin);
 const consoleColor=id=>Core.consoleOf(id).tint;
 let toastTimer;function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),2600);}
@@ -78,20 +78,24 @@ addEventListener('resize',closeMenu);document.addEventListener('keydown',e=>{if(
 /* ---------- persistence ---------- */
 const saveTimers=new Map();let syncTimer;
 function touch(f){f.updatedAt=Date.now();clearTimeout(saveTimers.get(f.id));saveTimers.set(f.id,setTimeout(()=>Store.put(f).catch(()=>toast('บันทึกในเครื่องไม่สำเร็จ')),400));scheduleSync();}
-function scheduleSync(){if(!S.auto||!FontLabCloud.user)return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(true),4000);}
-async function syncNow(quiet){if(S.cloudBusy)return;if(!FontLabCloud.user){toast('เข้าสู่ระบบก่อนเพื่อซิงก์');return;}
- S.cloudBusy=true;S.cloudMsg='กำลังซิงก์…';renderCloud();
- try{const r=await FontLabCloud.sync(userFonts(),{onProgress:m=>{S.cloudMsg=m;renderCloud();},onDownload:async raw=>{const f=Core.normalize(raw);S.fonts.set(f.id,f);await Store.put(f);}});
-  S.lastSync=new Date();S.cloudMsg='ซิงก์แล้ว · อัปโหลด '+r.uploaded+' · ดึงมา '+r.downloaded;if(!quiet||r.downloaded)toast(S.cloudMsg);renderLibrary();}
- catch(e){S.cloudMsg=e.message;toast(e.message);}
- finally{S.cloudBusy=false;renderCloud();}}
+/* Cloud backup is automatic: every save schedules a sync to the vault named by this browser's backup code. */
+const syncDelay=()=>Number.isFinite(window.FontLabSyncDelay)?window.FontLabSyncDelay:2500;
+function setCloud(state,msg){S.cloud.state=state;S.cloud.msg=msg||'';$$('.cdot').forEach(d=>{d.className='cdot '+state;});const box=$('#cloud-status');if(box)box.textContent=cloudText();}
+const cloudText=()=>({busy:S.cloud.msg||'กำลังซิงก์…',ok:'บันทึกบนคลาวด์แล้ว'+(S.cloud.last?' · '+S.cloud.last.toLocaleTimeString('th-TH'):''),err:S.cloud.msg,idle:'พร้อมสำรองอัตโนมัติ'}[S.cloud.state]);
+function scheduleSync(){clearTimeout(syncTimer);setCloud('busy','รอบันทึกขึ้นคลาวด์…');syncTimer=setTimeout(()=>syncNow(true),syncDelay());}
+let syncing=false,syncAgain=false;
+async function syncNow(quiet,silent){if(syncing){syncAgain=true;return;}syncing=true;clearTimeout(syncTimer);setCloud('busy','กำลังซิงก์…');
+ try{const r=await FontLabCloud.sync(userFonts(),{onProgress:m=>setCloud('busy',m),onDownload:async raw=>{const f=Core.normalize(raw);S.fonts.set(f.id,f);await Store.put(f);}});
+  S.cloud.last=new Date();S.cloud.count=r.total;setCloud('ok');if(r.downloaded){renderLibrary();toast('ดึงฟอนต์จากคลาวด์ '+r.downloaded+' ตัว');}else if(!quiet)toast('ซิงก์แล้ว');}
+ catch(e){setCloud('err',e.message);if(!silent&&(!quiet||!S.cloud.warned)){S.cloud.warned=true;toast(e.message);}}
+ finally{syncing=false;if(syncAgain){syncAgain=false;scheduleSync();}}}
 async function addFont(f,{open=false}={}){S.fonts.set(f.id,f);await Store.put(f).catch(()=>{});scheduleSync();renderLibrary();if(open)openStudio(f.id);}
 
 /* ---------- navigation ---------- */
-const TABS=[['library','คลังฟอนต์'],['studio','สตูดิโอ'],['consoles','เครื่องเกม'],['cloud','คลาวด์']];
+const TABS=[['library','คลังฟอนต์'],['studio','สตูดิโอ'],['consoles','เครื่องเกม']];
 function renderTabs(){$('#tabs').innerHTML='<div class="brand"><img src="logo.svg" alt="" width="36" height="36">FontLab</div>'+TABS.map(([id,l])=>'<button class="tab" data-tab="'+id+'"'+(S.tab===id?' aria-current="page"':'')+'>'+ic(id)+'<span>'+l+'</span></button>').join('');}
 function go(tab,{push=true}={}){S.tab=tab;$$('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+tab));renderTabs();if(push)try{history.replaceState(null,'','#'+tab);}catch{}scrollTo(0,0);
- const draw={library:renderLibrary,consoles:renderConsoles,studio:mountStudio,cloud:renderCloud}[tab];
+ const draw={library:renderLibrary,consoles:renderConsoles,studio:mountStudio}[tab];
  try{draw();}catch(e){console.error(e);$('#page-'+tab).innerHTML='<div class="empty"><h2>เปิดหน้านี้ไม่สำเร็จ</h2>'+esc(e.message)+'</div>';}}
 /* theme: light / dark, remembered; default follows the system */
 const themeKey='fontlab.theme';
@@ -100,8 +104,9 @@ function applyTheme(t,save){const r=document.documentElement;if(t)r.dataset.them
  const dark=isDark();for(const m of $$('meta[name=theme-color]'))m.content=dark?'#000000':'#ffffff';$$('[data-act=theme]').forEach(b=>{b.innerHTML=ic(dark?'sun':'moon');b.setAttribute('aria-label',dark?'เปลี่ยนเป็นโหมดกลางวัน':'เปลี่ยนเป็นโหมดกลางคืน');b.title=b.getAttribute('aria-label');});}
 try{const t=localStorage.getItem(themeKey);if(t==='dark'||t==='light')document.documentElement.dataset.theme=t;}catch{}
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>applyTheme(document.documentElement.dataset.theme,false));
+const cloudBtn=()=>'<button class="icon-btn cbtn" data-act="cloud" aria-label="สำรองบนคลาวด์" title="สำรองบนคลาวด์">'+ic('cloud')+'<i class="cdot '+S.cloud.state+'"></i></button>';
 const themeBtn=()=>'<button class="icon-btn" data-act="theme" aria-label="เปลี่ยนโหมดสี">'+ic(isDark()?'sun':'moon')+'</button>';
-const nav=(title,actions='')=>'<div class="nav"><span class="nav-title">'+esc(title)+'</span><div class="nav-actions">'+actions+themeBtn()+'</div></div>';
+const nav=(title,actions='')=>'<div class="nav"><span class="nav-title">'+esc(title)+'</span><div class="nav-actions">'+actions+cloudBtn()+themeBtn()+'</div></div>';
 addEventListener('scroll',()=>$$('.nav').forEach(n=>n.classList.toggle('scrolled',scrollY>48)),{passive:true});
 
 /* ---------- library ---------- */
@@ -188,7 +193,7 @@ function fontMenu(id){const f=S.fonts.get(id);if(!f)return;
    if(a==='json'){download(slug(f.name)+'.fontlab.json',JSON.stringify(f),'application/json');}
    if(a==='del')confirmDelete(f);});});}
 const duplicate=f=>({...structuredClone(f),id:Core.uid(),name:(f.name+' (สำเนา)').slice(0,100),builtin:undefined,note:undefined,updatedAt:Date.now()});
-function confirmDelete(f){sheet('<h2>ลบ “'+esc(f.name)+'” ?</h2><p class="sub">ฟอนต์จะถูกลบจากเครื่องนี้'+(FontLabCloud.user?' และจากคลาวด์เมื่อซิงก์':'')+' ย้อนกลับไม่ได้</p><div class="actions">'+action('ลบ','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
+function confirmDelete(f){sheet('<h2>ลบ “'+esc(f.name)+'” ?</h2><p class="sub">ฟอนต์จะถูกลบจากเครื่องนี้และจากคลาวด์สำรอง ย้อนกลับไม่ได้</p><div class="actions">'+action('ลบ','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
  $('[data-act=yes]',s).onclick=async()=>{closeSheet();S.fonts.delete(f.id);await Store.del(f.id).catch(()=>{});FontLabCloud.markDeleted(f.id);if(S.cur===f.id)S.cur=null;renderLibrary();if(S.tab==='studio')mountStudio();scheduleSync();toast('ลบแล้ว');};});}
 
 /* ---------- import ---------- */
@@ -324,26 +329,25 @@ function exportSheet(){const f=S.fonts.get(S.cur);if(!f)return;const c=Core.cons
     else if(a==='imp-png'){closeSheet();pickFiles('image/png');}else if(a==='imp-bin'){closeSheet();pickFiles('.bin,application/octet-stream');}
     if(!a.startsWith('imp'))toast('ส่งออกแล้ว');}catch(err){toast('ส่งออกไม่สำเร็จ: '+err.message);}});});}
 
-/* ---------- cloud ---------- */
-function renderCloud(){
- const el=$('#page-cloud'),u=FontLabCloud.user,mine=userFonts().length;if(!el)return;
- const keepEmail=$('#c-email')?.value||'';
- el.innerHTML=nav('คลาวด์')+'<div class="large"><h1>คลาวด์</h1><p>ซิงก์ฟอนต์ของคุณข้ามอุปกรณ์ เก็บเฉพาะข้อมูลฟอนต์</p></div>'
-  +(u?'<div class="group"><div class="row"><span class="status-dot on"></span><span class="grow">'+esc(u.email)+'<small>'+(S.cloudBusy?'<span class="spin" style="display:inline-block">⟳</span> ':'')+esc(S.cloudMsg||(S.lastSync?'ซิงก์ล่าสุด '+S.lastSync.toLocaleTimeString('th-TH'):'เข้าสู่ระบบแล้ว'))+'</small></span></div>'
-   +'<div class="row"><span class="grow">ซิงก์อัตโนมัติ<small>อัปโหลดหลังแก้ไข และดึงเมื่อเปิดแอป</small></span><button class="switch" role="switch" aria-checked="'+S.auto+'" aria-label="ซิงก์อัตโนมัติ" data-act="auto"></button></div>'
-   +'<div class="row"><span class="grow">ฟอนต์ของฉันบนเครื่องนี้</span><span class="val">'+mine+'</span></div></div>'
-   +'<div class="pad" style="margin-top:14px;display:grid;gap:10px"><button class="btn block" data-act="sync"'+(S.cloudBusy?' disabled':'')+'>'+ic('sync')+' ซิงก์ตอนนี้</button><button class="btn gray block" data-act="signout">ออกจากระบบ</button></div>'
-  :'<div class="group-title">เข้าสู่ระบบ</div><form class="group" id="c-form" style="padding:4px 16px 16px"><div class="field"><label for="c-email">อีเมล</label><input id="c-email" class="input" type="email" autocomplete="email" required value="'+esc(keepEmail)+'"></div><div class="field"><label for="c-pass">รหัสผ่าน</label><input id="c-pass" class="input" type="password" autocomplete="current-password" minlength="6" required></div>'
-   +'<div class="grid2"><button class="btn" type="submit" value="in"'+(S.cloudBusy?' disabled':'')+'>เข้าสู่ระบบ</button><button class="btn tint" type="submit" value="up"'+(S.cloudBusy?' disabled':'')+'>สมัครใหม่</button></div><p class="foot" style="margin:10px 0 0" id="c-msg" role="status">'+esc(S.cloudMsg)+'</p></form><p class="foot">ใช้งานโดยไม่เข้าสู่ระบบได้ ฟอนต์จะอยู่ในเบราว์เซอร์นี้ เข้าสู่ระบบเมื่ออยากสำรองหรือใช้หลายเครื่อง</p>')
-  +'<div class="group-title">การตั้งค่า Supabase</div><div class="group"><div class="row"><span class="grow">ตารางเดียว: fontlab_fonts<small>เก็บชื่อ เครื่อง ขนาด และพิกเซลของฟอนต์ ไม่มีรอม ไม่มีโปรเจกต์แปล ไม่มีรหัสแอดมิน</small></span></div><button class="row" data-act="schema"><span class="grow">คัดลอก SQL ติดตั้ง<small>รันครั้งเดียวใน Supabase → SQL Editor</small></span>'+ic('chev','chev')+'</button></div>'
-  +'<p class="foot">ทุกแถวผูกกับบัญชีเจ้าของด้วย Row Level Security ผู้อื่นอ่านหรือแก้ไม่ได้ ใช้เฉพาะ publishable key ในเบราว์เซอร์</p>';
- const form=$('#c-form');if(form)form.onsubmit=async e=>{e.preventDefault();const mode=e.submitter?.value||'in',email=$('#c-email').value.trim(),pw=$('#c-pass').value;S.cloudBusy=true;S.cloudMsg='กำลังเชื่อมต่อ…';renderCloud();
-  try{if(mode==='up'){const r=await FontLabCloud.signUp(email,pw);S.cloudMsg=r==='confirm'?'สมัครแล้ว · ตรวจอีเมลเพื่อยืนยัน แล้วกลับมาเข้าสู่ระบบ':'';}else{await FontLabCloud.signIn(email,pw);S.cloudMsg='';}}
-  catch(err){S.cloudMsg=err.message;}finally{S.cloudBusy=false;}renderCloud();if(FontLabCloud.user)syncNow(false);};
-}
-function schemaSheet(){sheet('<h2>SQL ติดตั้ง</h2><p class="sub">คัดลอกแล้ววางใน Supabase → SQL Editor → Run (รันซ้ำได้ปลอดภัย)</p><div class="pre" tabindex="0">'+esc(FontLabSchema)+'</div><button class="btn block" id="sc-copy">คัดลอก SQL</button>',s=>{
+/* ---------- cloud sheet (backup code) ---------- */
+const mask=c=>c.slice(0,6)+' •••• •••• •••• '+c.slice(-4);
+function cloudSheet(){
+ sheet('<h2>สำรองบนคลาวด์</h2><p class="sub">ไม่ต้องสมัครหรือเข้าสู่ระบบ ฟอนต์ของคุณจะถูกเซฟขึ้นคลาวด์เองทุกครั้งที่บันทึก</p>'
+  +'<div class="group" style="margin:0 0 12px"><div class="row"><span class="cdot '+S.cloud.state+'"></span><span class="grow"><span id="cloud-status">'+esc(cloudText())+'</span><small>ฟอนต์ของฉัน '+userFonts().length+' ตัว</small></span></div></div>'
+  +'<div class="group-title" style="margin:6px 4px">รหัสสำรองของคุณ</div><div class="group" style="margin:0 0 6px"><div class="row"><span class="grow" style="font-family:ui-monospace,Menlo,monospace;font-size:14px;overflow-wrap:anywhere" id="cc-code">'+mask(FontLabCloud.code())+'</span></div></div>'
+  +'<div class="grid2" style="margin-bottom:6px"><button class="btn tint small" id="cc-show">แสดงรหัส</button><button class="btn tint small" id="cc-copy">คัดลอกรหัส</button></div>'
+  +'<p class="foot" style="margin:0 4px 12px">ใช้รหัสนี้บนเครื่องอื่นเพื่อดึงฟอนต์ทั้งหมดมา เก็บไว้ให้ดีเหมือนรหัสผ่าน ใครมีรหัสก็เปิดฟอนต์ชุดนี้ได้'+(FontLabCloud.persistent()?'':' · เบราว์เซอร์นี้เก็บรหัสถาวรไม่ได้ จดรหัสไว้ด้วย')+'</p>'
+  +'<div class="group-title" style="margin:6px 4px">ใช้รหัสจากเครื่องอื่น</div><div class="field" style="margin:0 0 8px"><input id="cc-in" class="input" placeholder="วางรหัส 64 ตัวอักษร" autocomplete="off" spellcheck="false" aria-label="รหัสสำรองจากเครื่องอื่น"></div>'
+  +'<div class="actions"><button class="row" id="cc-use">เชื่อมต่อด้วยรหัสนี้และรวมฟอนต์</button><button class="row" id="cc-sync">ซิงก์ตอนนี้</button><button class="row" id="cc-sql">คัดลอก SQL ติดตั้ง (ทำครั้งเดียว)</button></div>'
+  +'<button class="btn gray block" data-close>ปิด</button>',s=>{
+  let shown=false;const code=$('#cc-code',s);
+  $('#cc-show',s).onclick=e=>{shown=!shown;code.textContent=shown?FontLabCloud.code():mask(FontLabCloud.code());e.target.textContent=shown?'ซ่อนรหัส':'แสดงรหัส';};
+  $('#cc-copy',s).onclick=async()=>{try{await navigator.clipboard.writeText(FontLabCloud.code());toast('คัดลอกรหัสแล้ว');}catch{shown=true;code.textContent=FontLabCloud.code();const r=document.createRange();r.selectNodeContents(code);getSelection().removeAllRanges();getSelection().addRange(r);toast('เลือกรหัสไว้แล้ว กดคัดลอกเอง');}};
+  $('#cc-use',s).onclick=()=>{try{FontLabCloud.setCode($('#cc-in',s).value);}catch(e){return toast(e.message);}closeSheet();toast('เชื่อมต่อแล้ว กำลังรวมฟอนต์…');syncNow(false);};
+  $('#cc-sync',s).onclick=()=>{syncNow(false);};
+  $('#cc-sql',s).onclick=async()=>{try{await navigator.clipboard.writeText(FontLabSchema);toast('คัดลอก SQL แล้ว วางใน Supabase SQL Editor แล้วกด Run');}catch{closeSheet();schemaSheet();}};});}
+function schemaSheet(){sheet('<h2>SQL ติดตั้ง</h2><p class="sub">คัดลอกแล้ววางใน Supabase → SQL Editor → Run (ทำครั้งเดียว รันซ้ำได้ปลอดภัย)</p><div class="pre" tabindex="0">'+esc(FontLabSchema)+'</div><button class="btn block" id="sc-copy">คัดลอก SQL</button>',s=>{
  $('#sc-copy',s).onclick=async()=>{try{await navigator.clipboard.writeText(FontLabSchema);toast('คัดลอก SQL แล้ว');}catch{const r=document.createRange();r.selectNodeContents($('.pre',s));getSelection().removeAllRanges();getSelection().addRange(r);toast('เลือกข้อความไว้แล้ว กดคัดลอกด้วยตัวเอง');}};});}
-FontLabCloud.onChange(()=>{if(S.tab==='cloud')renderCloud();});
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{const t=e.target;
@@ -361,9 +365,7 @@ document.addEventListener('click',e=>{const t=e.target;
  if(a==='new')newFontSheet();else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
  else if(a==='add-glyph')addGlyphSheet();else if(a==='check-all')checkAllSheet();else if(a==='guides'){S.guides=!S.guides;$$('[data-act=guides]').forEach(b=>b.setAttribute('aria-pressed',S.guides));drawEditor();}else if(a==='grid'){S.grid=!S.grid;drawEditor();}
  else if(a==='dup-edit'){const f=S.fonts.get(S.cur),d=duplicate(f);addFont(d).then(()=>{openStudio(d.id);toast('ทำสำเนาแล้ว แก้ไขได้เลย');});}
- else if(a==='sync')syncNow(false);else if(a==='signout'){FontLabCloud.signOut();S.cloudMsg='';toast('ออกจากระบบแล้ว');}
- else if(a==='auto'){S.auto=!S.auto;try{localStorage.setItem('fontlab.auto',S.auto?'yes':'no');}catch{}renderCloud();if(S.auto)scheduleSync();}
- else if(a==='schema')schemaSheet();});
+ else if(a==='cloud')cloudSheet();});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.query=e.target.value;renderLibrary();}});
 document.addEventListener('keydown',e=>{
  if(e.key==='Enter'&&e.target.matches?.('.card')){openStudio(e.target.dataset.open);return;}
@@ -382,7 +384,7 @@ addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(TABS.some(x
  applyTheme(document.documentElement.dataset.theme,false);
  const start=location.hash.slice(1);go(TABS.some(x=>x[0]===start)?start:'library',{push:false});
  if(!Store.persistent())toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บฟอนต์ถาวร · ส่งออกไฟล์ไว้เสมอ');
- if(FontLabCloud.user&&S.auto)syncNow(true);
+ syncNow(true,true);
 })();
 window.FontLabApp={S,Store,go,openStudio};
 })();

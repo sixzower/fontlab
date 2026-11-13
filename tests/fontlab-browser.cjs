@@ -7,19 +7,19 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  const browser=await chromium.launch(),errors=[];
  const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,acceptDownloads:true}),page=await ctx.newPage();
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
- /* mock Supabase: one table in memory */
- const db=new Map();let calls=[];
- await ctx.route('https://*.supabase.co/**',async route=>{const req=route.request(),u=new URL(req.url()),cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'};calls.push(req.method()+' '+u.pathname+u.search);
+ /* mock Supabase: backup vaults (RPC) in memory, keyed by backup code */
+ const vaults=new Map();let calls=[];
+ await ctx.addInitScript(()=>{window.FontLabSyncDelay=50;});
+ const handler=async route=>{const req=route.request(),u=new URL(req.url()),cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'};
   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
   const json=(b,s=200)=>route.fulfill({status:s,headers:{...cors,'content-type':'application/json'},body:JSON.stringify(b)});
-  if(u.pathname==='/auth/v1/token')return json({access_token:'t',refresh_token:'r',expires_in:3600,user:{id:'u1',email:'a@b.co'}});
-  if(u.pathname==='/auth/v1/signup')return json({user:{id:'u1'}});
-  if(u.pathname==='/rest/v1/fontlab_fonts'){
-   if(req.method()==='POST'){for(const r of JSON.parse(req.postData()))db.set(r.font_id,r);return route.fulfill({status:201,headers:cors,body:''});}
-   if(req.method()==='DELETE'){db.delete(u.searchParams.get('font_id').replace('eq.',''));return route.fulfill({status:204,headers:cors});}
-   const eq=u.searchParams.get('font_id');if(eq)return json([...db.values()].filter(r=>r.font_id===eq.replace('eq.','')).map(r=>({data:r.data})));
-   return json([...db.values()].map(({font_id,name,console,glyph_count,updated_at})=>({font_id,name,console,glyph_count,updated_at})));}
-  route.fulfill({status:404,headers:cors,body:'{}'});});
+  const m=u.pathname.match(/^\/rest\/v1\/rpc\/(fontlab_\w+)$/);if(!m)return json({message:'nope'},404);
+  const body=JSON.parse(req.postData()||'{}'),v=vaults.get(body.p_code)||new Map();calls.push(m[1]);
+  if(m[1]==='fontlab_list')return json([...v.values()].map(({font_id,name,console,glyph_count,updated_at})=>({font_id,name,console,glyph_count,updated_at})));
+  if(m[1]==='fontlab_get')return json([...v.values()].filter(r=>body.p_ids.includes(r.font_id)).map(r=>({font_id:r.font_id,data:r.data})));
+  if(m[1]==='fontlab_put'){for(const r of body.p_fonts)v.set(r.font_id,r);vaults.set(body.p_code,v);return route.fulfill({status:204,headers:cors,body:''});}
+  if(m[1]==='fontlab_delete'){for(const id of body.p_ids)v.delete(id);return route.fulfill({status:204,headers:cors,body:''});}
+  json({},404);};await ctx.route('https://*.supabase.co/**',handler);
  await page.goto(base);
  await page.waitForSelector('.card');
  assert.strictEqual(await page.locator('.card').count(),4,'4 built-in fonts');
@@ -62,16 +62,32 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('[data-act=dup-edit]');await page.waitForFunction(()=>!FontLabApp.S.fonts.get(FontLabApp.S.cur).builtin);
  /* persistence */
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');assert.strictEqual(await page.locator('.card').count(),6,'user fonts persisted');
- /* cloud */
- await page.click('.tab[data-tab=cloud]');await page.fill('#c-email','a@b.co');await page.fill('#c-pass','secret1');await page.click('button[value=in]');
- await page.waitForSelector('[data-act=signout]');await page.waitForFunction(()=>/ซิงก์แล้ว/.test(document.body.innerText));
- assert.strictEqual(db.size,2,'2 user fonts uploaded: '+calls.join(' | '));
- assert.ok(![...db.values()].some(r=>r.font_id.startsWith('builtin')),'built-ins are not uploaded');
- const row=[...db.values()][0];assert.ok(row.user_id==='u1'&&row.data.glyphs&&row.width&&row.glyph_count);
- /* delete -> removed from cloud on next sync */
- await page.click('.tab[data-tab=library]');await page.locator('.card .more').first().click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
- await page.click('.tab[data-tab=cloud]');await page.click('[data-act=sync]');await page.waitForFunction(()=>/ซิงก์แล้ว/.test(document.body.innerText));await page.waitForTimeout(200);
- assert.strictEqual(db.size,1,'deleted font removed from cloud');
+ /* cloud: automatic, no login, no cloud tab */
+ assert.strictEqual(await page.locator('.tab').count(),3,'no cloud tab');assert.strictEqual(await page.locator('[data-act=sync],#c-form').count(),0,'no login form');
+ await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});
+ const code=await page.evaluate(()=>localStorage.getItem('fontlab.code.v2'));assert.ok(/^[a-f0-9]{64}$/.test(code),'backup code created automatically');
+ await page.waitForFunction(c=>true,code);const vault=()=>vaults.get(code);
+ assert.strictEqual(vault().size,2,'2 user fonts auto-uploaded: '+calls.join(','));
+ assert.ok(![...vault().values()].some(r=>r.font_id.startsWith('builtin')),'built-ins are not uploaded');
+ const row=[...vault().values()][0];assert.ok(row.data.glyphs&&row.width&&row.glyph_count);
+ /* editing saves to the cloud by itself */
+ await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ในตัว"))').first().click();await page.waitForSelector('#edit');
+ const b3=await page.locator('#edit').boundingBox();await page.mouse.click(b3.x+b3.width/2,b3.y+b3.height/2);
+ await page.waitForFunction(()=>document.querySelector('.cdot.ok'));await page.waitForTimeout(300);
+ const t0=Math.max(...[...vault().values()].map(r=>Date.parse(r.updated_at)));assert.ok(Date.now()-t0<15000,'edit uploaded');
+ /* status sheet shows the code, a second device can use it */
+ await page.click('#page-studio [data-act=cloud]');assert.ok(/••••/.test(await page.locator('#cc-code').innerText()),'code masked');
+ await page.click('#cc-show');assert.strictEqual(await page.locator('#cc-code').innerText(),code);await page.keyboard.press('Escape');
+ const ctx2=await browser.newContext({viewport:{width:390,height:844}});await ctx2.addInitScript(()=>{window.FontLabSyncDelay=50;});await ctx2.route('https://*.supabase.co/**',handler);const page2=await ctx2.newPage();page2.on('pageerror',e=>errors.push(e.message));await page2.goto(base);await page2.waitForSelector('.card');
+ assert.notStrictEqual(await page2.evaluate(()=>localStorage.getItem('fontlab.code.v2')),code);
+ await page2.click('#page-library [data-act=cloud]');await page2.fill('#cc-in',code);await page2.click('#cc-use');
+ await page2.waitForFunction(()=>[...document.querySelectorAll('.card')].filter(c=>!/ในตัว/.test(c.innerText)).length===2,null,{timeout:8000});
+ assert.strictEqual(await page2.locator('.card').count(),6,'fonts arrived on the other device');await ctx2.close();
+ /* delete -> removed from cloud */
+ await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ในตัว")) .more').first().click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
+ await page.waitForFunction(()=>document.querySelector('.cdot.ok'));await page.waitForTimeout(400);
+ assert.strictEqual(vault().size,1,'deleted font removed from cloud');
+ await page.click('#page-library [data-act=cloud]');await page.fill('#cc-in','xyz');await page.click('#cc-use');assert.ok(await page.locator('.toast.on').count(),'bad code rejected');await page.keyboard.press('Escape');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/cloud.png':undefined});
  /* desktop layout */
  await page.setViewportSize({width:1280,height:820});await page.click('.tab[data-tab=library]');await page.locator('.card').first().click();await page.waitForSelector('#edit');

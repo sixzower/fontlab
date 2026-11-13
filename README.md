@@ -2,6 +2,12 @@
 
 Static Thai ROM translation workspace. The game stays on the user's device. Live site: https://sixzower.github.io/RomTranslate/ . The downloadable `download/index.html` supports local editing and Excel; threaded mGBA testing uses the live site.
 
+## FontLab automatic cloud backup, no login (1.0.22)
+
+The Cloud tab and email sign-in are gone. FontLab now creates a random 256-bit backup code in the browser and saves every user font to Supabase by itself a moment after each edit, create, duplicate, import or delete (status dot on the cloud button next to the theme button). Moving to another device: open the cloud sheet, copy the code, paste it on the other device and tap “เชื่อมต่อด้วยรหัสนี้และรวมฟอนต์” (newest copy wins; deletions are replayed). Built-in fonts are never uploaded.
+
+Supabase now needs the new `cloud/fontlab.sql` once (the previous email-login table `fontlab_fonts` is no longer used; a commented `drop table` is included). It stores font data only in two closed tables reached through four security-definer functions (`fontlab_list/get/put/delete`); only the SHA-256 of the code is stored, so the code works like a password. Trade-off to know: without accounts anyone can create a vault, so storage is capped at 500 fonts of at most 2 MB per code. Fonts still live in the browser first, so the app works offline.
+
 ## FontLab console menu and Thai drawing limits (1.0.21)
 
 The Consoles tab is now a grouped app-icon menu (handhelds, home/arcade, 3D-era, other) covering 25 targets: GB, GBC, GBA, DS, PSP, Game Gear, Neo Geo Pocket, WonderSwan, NES, SNES, N64, PS1, Mega Drive, Master System, Mega CD, Saturn, PC Engine, Atari 2600, arcade, 3DS, PS2, GameCube/Wii, Switch, Dreamcast and a custom entry. Tile machines use their real tile formats; consoles whose fonts are game-specific textures (PSP, N64, Saturn, arcade, 3DS and later, Neo Geo Pocket) export a generic linear bitmap and are marked “PNG first” instead of pretending to be a hardware format. WonderSwan and PC Engine reuse the Game Boy / SNES tile layouts and say to verify against the game. Starters were regenerated for every console (`npm run fontlab`).
