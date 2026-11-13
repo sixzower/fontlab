@@ -29,7 +29,7 @@ const Store=(()=>{let db=null;const mem=new Map();
   put:async f=>{mem.set(f.id,f);if(db)await tx('readwrite',s=>s.put(f));},del:async id=>{mem.delete(id);if(db)await tx('readwrite',s=>s.delete(id));},persistent:()=>!!db};})();
 
 /* ---------- state ---------- */
-const S={fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloudBusy:false,cloudMsg:'',lastSync:null,auto:localStorage.getItem('fontlab.auto')!=='no'};
+const S={fonts:new Map(),tab:'library',filter:'all',query:'',cur:null,idx:0,tool:'pencil',color:1,grid:true,undo:[],redo:[],clip:null,previewText:'',cloudBusy:false,cloudMsg:'',lastSync:null,auto:(()=>{try{return localStorage.getItem('fontlab.auto')!=='no';}catch{return true;}})()};
 const userFonts=()=>[...S.fonts.values()].filter(f=>!f.builtin);
 const consoleColor=id=>Core.consoleOf(id).tint;
 let toastTimer;function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),2600);}
@@ -87,10 +87,11 @@ async function syncNow(quiet){if(S.cloudBusy)return;if(!FontLabCloud.user){toast
 async function addFont(f,{open=false}={}){S.fonts.set(f.id,f);await Store.put(f).catch(()=>{});scheduleSync();renderLibrary();if(open)openStudio(f.id);}
 
 /* ---------- navigation ---------- */
-const TABS=[['library','คลังฟอนต์'],['consoles','เครื่องเกม'],['studio','สตูดิโอ'],['cloud','คลาวด์']];
+const TABS=[['library','คลังฟอนต์'],['studio','สตูดิโอ'],['consoles','เครื่องเกม'],['cloud','คลาวด์']];
 function renderTabs(){$('#tabs').innerHTML='<div class="brand"><img src="logo.svg" alt="" width="36" height="36">FontLab</div>'+TABS.map(([id,l])=>'<button class="tab" data-tab="'+id+'"'+(S.tab===id?' aria-current="page"':'')+'>'+ic(id)+'<span>'+l+'</span></button>').join('');}
-function go(tab,{push=true}={}){S.tab=tab;$$('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+tab));renderTabs();if(push)history.replaceState(null,'','#'+tab);scrollTo(0,0);
- if(tab==='library')renderLibrary();if(tab==='consoles')renderConsoles();if(tab==='studio')mountStudio();if(tab==='cloud')renderCloud();}
+function go(tab,{push=true}={}){S.tab=tab;$$('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+tab));renderTabs();if(push)try{history.replaceState(null,'','#'+tab);}catch{}scrollTo(0,0);
+ const draw={library:renderLibrary,consoles:renderConsoles,studio:mountStudio,cloud:renderCloud}[tab];
+ try{draw();}catch(e){console.error(e);$('#page-'+tab).innerHTML='<div class="empty"><h2>เปิดหน้านี้ไม่สำเร็จ</h2>'+esc(e.message)+'</div>';}}
 /* theme: light / dark, remembered; default follows the system */
 const themeKey='fontlab.theme';
 const isDark=()=>document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;

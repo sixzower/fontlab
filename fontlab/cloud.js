@@ -26,8 +26,9 @@ const FontLabCloud=(()=>{
  async function get(id){const r=await rest('?select=data&font_id=eq.'+encodeURIComponent(id));return r?.[0]?.data;}
  async function put(fonts){for(let i=0;i<fonts.length;i+=5)await rest('?on_conflict=user_id,font_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:fonts.slice(i,i+5).map(row)});}
  async function remove(id){await rest('?font_id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{Prefer:'return=minimal'}});}
- const tombs=()=>{try{return JSON.parse(localStorage.getItem(DEL)||'[]');}catch{return[];}};
- const setTombs=a=>{try{localStorage.setItem(DEL,JSON.stringify([...new Set(a)]));}catch{}};
+ let memTombs=[];
+ const tombs=()=>{try{return JSON.parse(localStorage.getItem(DEL)||'[]');}catch{return memTombs;}};
+ const setTombs=a=>{memTombs=[...new Set(a)];try{localStorage.setItem(DEL,JSON.stringify(memTombs));}catch{}};
  /* newest wins; deletions made while signed out are replayed once. local = non-builtin fonts */
  async function sync(local,{onDownload,onProgress=()=>{}}){
   if(!session)throw Error('ยังไม่ได้เข้าสู่ระบบ');

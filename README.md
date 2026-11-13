@@ -2,6 +2,14 @@
 
 Static Thai ROM translation workspace. The game stays on the user's device. Live site: https://sixzower.github.io/RomTranslate/ . The downloadable `download/index.html` supports local editing and Excel; threaded mGBA testing uses the live site.
 
+## FontLab official logo (1.0.20)
+
+The chosen logo is option 9: a white pencil with an orange eraser drawing a pixel line, on a graphite tile. It is now the sidebar logo, browser tab icon (`icon.svg`, `favicon.ico`), iPhone/iPad home-screen icon and installable-app icons. `node scripts/build_fontlab_icons.cjs` regenerates them from `fontlab/logo-options/option-9.svg`.
+
+## FontLab sandbox fix, tab order and logo options (1.0.19)
+
+FontLab now works inside sandboxed preview frames: the Consoles, Studio and Cloud tabs used to stay blank when `history.replaceState` or `localStorage` was blocked (any such failure is now caught, and a page that fails to draw shows its error instead of staying empty). `tests/fontlab-sandbox.cjs` loads the single-file build in `sandbox` iframes to guard this. The tab order is now Library · Studio · Consoles · Cloud. Nine logo candidates are in `fontlab/logo-options/` (`options.png` contact sheet, `index.html`, `option-N.svg`, rebuilt by `scripts/build_fontlab_logo_options.cjs`); the shipped logo is unchanged until one is chosen.
+
 ## FontLab white theme, theme switch and iOS menus (1.0.18)
 
 FontLab no longer uses the blue accent: light mode is white with graphite controls, dark mode is black with white controls, and the logo tile is now graphite. A sun/moon button at the top right of every page switches light/dark (remembered in `fontlab.theme`; default follows the system). Native `<select>` dropdowns are replaced by iOS-style pop-up menus (blurred rounded list, check mark, arrow-key and Esc support) while the real select stays in the DOM as the value holder. The translation workspace and patch site are untouched.

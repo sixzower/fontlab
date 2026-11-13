@@ -1,13 +1,11 @@
 /* Generates FontLab's logo SVGs and PNG/ICO icons. Run: node scripts/build_fontlab_icons.cjs */
 const fs=require('fs'),path=require('path'),{chromium}=require('playwright');
 const out=path.resolve(__dirname,'../fontlab');
-const F=['11111','10000','11110','10000','10000','10000','10000'];
-function svg({rounded=true,scale=1}={}){
- const c=6,w=5*c,h=7*c,x0=(64-w)/2-1,y0=(64-h)/2-1;let sh='',fg='';
- F.forEach((row,y)=>[...row].forEach((v,x)=>{if(v==='1'){sh+=`<rect x="${x0+x*c+1.5}" y="${y0+y*c+1.5}" width="${c}" height="${c}"/>`;fg+=`<rect x="${x0+x*c}" y="${y0+y*c}" width="${c}" height="${c}"/>`;}}));
- const acc=`<rect x="${x0+4*c}" y="${y0+2*c}" width="${c}" height="${c}" fill="#ffd60a"/>`;
- const bg=rounded?'<rect width="64" height="64" rx="14.5" fill="url(#g)"/>':'<rect width="64" height="64" fill="url(#g)"/>';
- return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a3a3c"/><stop offset="1" stop-color="#0a0a0b"/></linearGradient></defs>${bg}<g transform="translate(32 32) scale(${scale}) translate(-32 -32)"><g fill="#000" opacity=".45">${sh}</g><g fill="#fff">${fg}</g>${acc}</g></svg>\n`;}
+/* Official logo = option 9 of the candidates (pencil + pixel trail), kept in logo-options/option-9.svg */
+const src=fs.readFileSync(path.join(out,'logo-options/option-9.svg'),'utf8');
+const m=src.match(/^(<svg[^>]*>)(<defs>.*?<\/defs>)<rect width="64" height="64" rx="14.5" fill="url\(#g\)"\/>(.*)<\/svg>\s*$/s);
+if(!m)throw Error('option-9.svg has an unexpected shape');
+function svg({rounded=true,scale=1}={}){return m[1]+m[2]+`<rect width="64" height="64"${rounded?' rx="14.5"':''} fill="url(#g)"/>`+(scale===1?m[3]:`<g transform="translate(32 32) scale(${scale}) translate(-32 -32)">${m[3]}</g>`)+'</svg>\n';}
 fs.writeFileSync(path.join(out,'icon.svg'),svg());
 fs.writeFileSync(path.join(out,'logo.svg'),svg());
 (async()=>{const b=await chromium.launch(),p=await b.newPage();
