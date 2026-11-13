@@ -57,7 +57,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  const ink=()=>page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs[FontLabApp.S.idx].p.replace(/0/g,'').length);
  const drawn=await ink();assert.ok(drawn>3,'stroke drew pixels '+drawn);
  await page.click('#u-undo');assert.strictEqual(await ink(),0,'undo clears stroke');await page.click('#u-redo');assert.strictEqual(await ink(),drawn);
- await page.click('[data-tool=fill]');await page.click('[data-color="2"]');await page.mouse.click(box.x+box.width-5,box.y+5);assert.ok(await ink()>drawn,'fill works');
+ await page.click('[data-tool=fill]');await page.click('[data-color="2"]');{await page.waitForTimeout(600);const bx=await page.locator('#edit').boundingBox();await page.mouse.click(bx.x+bx.width-5,bx.y+bx.height*0.8);};assert.ok(await ink()>drawn,'fill works');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/studio.png':undefined});
  /* drawing guide: ink outside the allowed rows is flagged */
  await page.evaluate(()=>{const S=FontLabApp.S,f=S.fonts.get(S.cur);S.idx=f.glyphs.findIndex(g=>g.c==='ก');});await page.click('#s-glyphs .gl >> nth=1');
@@ -165,6 +165,11 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-seaglass-th-complete]');await page.waitForSelector('#edit');
  await page.locator('[data-act=add-glyph]').scrollIntoViewIfNeeded();await page.click('[data-act=add-glyph]');await page.click('#ag-auto');
  assert.ok(await page.evaluate(()=>{const f=FontLabApp.S.fonts.get('builtin-seaglass-th-complete'),b=f.glyphs.find(g=>g.c==='B');return b&&/1/.test(b.p)&&/2/.test(b.p)&&b.a<=f.w;}),'auto-fill gives shadowed letters on a shadow font');
+ /* studio toolbar: every edit button lives in the one toolbar above the canvas, the clear button sits right after the eraser */
+ {assert.strictEqual(await page.locator('.opsrow').count(),0,'no second toolbar below the colours');
+  const order=await page.evaluate(()=>[...document.querySelectorAll('.tools button[data-tool],.tools button[data-op]')].map(b=>b.dataset.tool||b.dataset.op).join(','));
+  assert.ok(/eraser,clear,fill/.test(order),'clear button next to the eraser: '+order);assert.ok(/shift-l,shift-r,shift-u,shift-d,flip-h,flip-v,copy,paste/.test(order),'move / flip / copy / paste are in the same toolbar');
+  assert.strictEqual(await page.evaluate(()=>document.querySelector('.tools [data-op=clear] svg')?.outerHTML.includes('M5 5l14')),false,'clear icon is no longer the plain X');}
  /* studio: Ctrl+click several glyphs, delete them with one confirmation */
  {const n0=await page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length);
   await page.locator('#s-glyphs .gl[aria-label="อักษร A"]').click();
