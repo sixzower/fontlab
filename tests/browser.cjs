@@ -170,6 +170,20 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
   const order=await page.evaluate(()=>[...document.querySelectorAll('.tools button[data-tool],.tools button[data-op]')].map(b=>b.dataset.tool||b.dataset.op).join(','));
   assert.ok(/eraser,clear,fill/.test(order),'clear button next to the eraser: '+order);assert.ok(/shift-l,shift-r,shift-u,shift-d,flip-h,flip-v,copy,paste/.test(order),'move / flip / copy / paste are in the same toolbar');
   assert.strictEqual(await page.evaluate(()=>document.querySelector('.tools [data-op=clear] svg')?.outerHTML.includes('M5 5l14')),false,'clear icon is no longer the plain X');}
+ /* studio keyboard shortcuts */
+ {const G=()=>page.evaluate(()=>{const f=FontLabApp.S.fonts.get(FontLabApp.S.cur);return{i:FontLabApp.S.idx,p:f.glyphs[FontLabApp.S.idx].p,tool:FontLabApp.S.tool,color:FontLabApp.S.color,w:f.w};});
+  await page.evaluate(()=>{document.activeElement&&document.activeElement.blur();});
+  await page.locator('#s-glyphs .gl[aria-label="อักษร ก"]').click();await page.evaluate(()=>{document.activeElement&&document.activeElement.blur();});
+  const g0=await G();assert.ok(/[1-3]/.test(g0.p),'ก has ink');
+  await page.keyboard.press('ArrowRight');const g1=await G();assert.notStrictEqual(g1.p,g0.p,'arrow key shifts the glyph');
+  await page.keyboard.press('Control+z');assert.strictEqual((await G()).p,g0.p,'Ctrl+Z undoes the shift');
+  await page.keyboard.press('Control+c');await page.keyboard.press('Control+x');assert.ok(!/[1-3]/.test((await G()).p),'Ctrl+X cuts');
+  await page.keyboard.press('Control+v');assert.strictEqual((await G()).p,g0.p,'Ctrl+V pastes it back');
+  await page.keyboard.press('e');assert.strictEqual((await G()).tool,'eraser','E = eraser');await page.keyboard.press('p');assert.strictEqual((await G()).tool,'pencil','P = pencil');
+  await page.keyboard.press('2');assert.strictEqual((await G()).color,1,'2 = second colour');
+  await page.keyboard.press('h');assert.notStrictEqual((await G()).p,g0.p,'H flips');await page.keyboard.press('h');assert.strictEqual((await G()).p,g0.p,'H twice restores');
+  await page.keyboard.press('PageDown');assert.strictEqual((await G()).i,g0.i+1,'PageDown = next glyph');await page.keyboard.press('PageUp');assert.strictEqual((await G()).i,g0.i,'PageUp = previous glyph');
+  await page.keyboard.press('Shift+?');assert.ok(/ปุ่มลัดในสตูดิโอ/.test(await page.locator('.sheet').innerText()),'? lists the shortcuts');await page.keyboard.press('Escape');}
  /* studio: Ctrl+click several glyphs, delete them with one confirmation */
  {const n0=await page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length);
   await page.locator('#s-glyphs .gl[aria-label="อักษร A"]').click();

@@ -455,6 +455,7 @@ function bindEditor(f){
  S.kx=Math.min(S.kx||0,f.w-1);S.ky=Math.min(S.ky||0,f.h-1);
  const announce=()=>{const live=$('#s-live');if(live)live.textContent='แถว '+(S.ky+1)+' คอลัมน์ '+(S.kx+1);};
  cv.onkeydown=e=>{const k=e.key;let handled=true;
+  if(!cv.matches(':focus-visible')&&(k.startsWith('Arrow')||k==='Backspace'||k==='Delete'))return; /* after a mouse click the arrows shift the glyph and Delete clears it (global shortcuts) */
   if(k==='ArrowLeft')S.kx=Math.max(0,S.kx-1);else if(k==='ArrowRight')S.kx=Math.min(f.w-1,S.kx+1);else if(k==='ArrowUp')S.ky=Math.max(0,S.ky-1);else if(k==='ArrowDown')S.ky=Math.min(f.h-1,S.ky+1);
   else if(k===' '||k==='Enter'||k==='Backspace'||k==='Delete'){if(!guardEdit()){e.preventDefault();return;}const {g,buf}=cur(),i=S.ky*f.w+S.kx;
    if(S.tool==='pick'&&k!=='Backspace'&&k!=='Delete'){S.color=buf[i];$$('[data-color]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.color===S.color));}
@@ -628,10 +629,33 @@ document.addEventListener('click',e=>{const t=e.target;
  else if(a==='dup-edit'){const f=S.fonts.get(S.cur),d=duplicate(f);addFont(d).then(()=>{openStudio(d.id);toast('ทำสำเนาแล้ว แก้ไขได้เลย');});}
  else if(a==='cloud')cloudSheet();});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.query=e.target.value;renderLibrary();}});
+/* studio keyboard shortcuts (listed by “?”) */
+const SHORTCUTS=[['Ctrl+Z / Ctrl+Y','ย้อนกลับ / ทำซ้ำ (Ctrl+Shift+Z ก็ได้)'],['Ctrl+C / Ctrl+X / Ctrl+V','คัดลอก / ตัด / วางอักษร'],['Ctrl+S','บันทึก'],['← → ↑ ↓','เลื่อนภาพอักษรทีละ 1 พิกเซล (ถ้าโฟกัสกริดด้วยแป้นพิมพ์ ลูกศรจะเลื่อนเคอร์เซอร์แทน)'],['P / E / F / I','ดินสอ / ยางลบ / เทสี / ดูดสี'],['1 2 3 4','เลือกสี'],['H / V','พลิกแนวนอน / แนวตั้ง'],['Delete','ล้างอักษร'],['[  ]  หรือ PageUp / PageDown','อักษรก่อนหน้า / ถัดไป'],['G','เปิด/ปิดเส้นกริด'],['?','แสดงรายการนี้']];
+function shortcutsSheet(){sheet('<h2>ปุ่มลัดในสตูดิโอ</h2><div class="group">'+SHORTCUTS.map(([k,d])=>'<div class="row"><span class="grow"><b>'+esc(k)+'</b><small>'+esc(d)+'</small></span></div>').join('')+'</div><button class="btn gray block" data-close>ปิด</button>',()=>{});}
 document.addEventListener('keydown',e=>{
  if(e.key==='Enter'&&e.target.matches?.('.card')){openStudio(e.target.dataset.open);return;}
- if(S.tab!=='studio'||!(e.ctrlKey||e.metaKey)||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||''))return;
- if(e.key.toLowerCase()==='z'){e.preventDefault();stepHistory(e.shiftKey?1:-1);}else if(e.key.toLowerCase()==="y"){e.preventDefault();stepHistory(1);}});
+ if(S.tab!=='studio'||e.defaultPrevented||document.querySelector('.sheet')||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')||document.activeElement?.isContentEditable)return;
+ const k=e.key,K=k.length===1?k.toLowerCase():k,mod=e.ctrlKey||e.metaKey,f=S.fonts.get(S.cur);if(!f)return;
+ if(mod&&!e.altKey){
+  if(K==='z'){e.preventDefault();stepHistory(e.shiftKey?1:-1);}else if(K==='y'){e.preventDefault();stepHistory(1);}
+  else if(K==='c'){e.preventDefault();transform('copy');}
+  else if(K==='v'){e.preventDefault();transform('paste');}
+  else if(K==='x'){e.preventDefault();if(!guardEdit())return;transform('copy');transform('clear');}
+  else if(K==='s'){e.preventDefault();saveNow();}
+  return;}
+ if(e.altKey)return;
+ const kbCanvas=document.activeElement===$('#edit')&&document.activeElement.matches?.(':focus-visible'); /* keyboard-drawing mode keeps the arrows for its cursor */
+ const arrows={ArrowLeft:'shift-l',ArrowRight:'shift-r',ArrowUp:'shift-u',ArrowDown:'shift-d'};
+ if(arrows[k]&&!kbCanvas){e.preventDefault();transform(arrows[k]);return;}
+ const tools={p:'pencil',e:'eraser',f:'fill',i:'pick'};
+ if(tools[K]){$('[data-tool='+tools[K]+']')?.click();return;}
+ if('1234'.includes(K)&&K.length===1){$('[data-color="'+(+K-1)+'"]')?.click();return;}
+ if(K==='h'){transform('flip-h');return;}if(K==='v'){transform('flip-v');return;}
+ if(K==='g'){$('[data-act=grid]')?.click();return;}
+ if((k==='Delete'||k==='Backspace')&&!kbCanvas){e.preventDefault();transform('clear');return;}
+ if(k==='['||k==='PageUp'||k===']'||k==='PageDown'){e.preventDefault();const d=(k==='['||k==='PageUp')?-1:1,n=Math.max(0,Math.min(f.glyphs.length-1,S.idx+d));if(n!==S.idx)selectGlyph(n);return;}
+ if(k==='?'){e.preventDefault();shortcutsSheet();}
+});
 document.addEventListener('click',e=>{if(e.target.closest('#u-undo'))stepHistory(-1);if(e.target.closest("#u-redo"))stepHistory(1);});
 addEventListener('resize',()=>{if(S.tab==='studio'&&edit&&S.fonts.get(S.cur)){sizeEditor();drawEditor();drawPreview();}});
 addEventListener('beforeunload',()=>{for(const [id,t] of saveTimers){clearTimeout(t);const f=S.fonts.get(id);if(f)Store.put(f);}});
