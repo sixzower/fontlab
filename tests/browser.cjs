@@ -22,7 +22,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
   json({},404);};await ctx.route('https://*.supabase.co/**',handler);
  await page.goto(base);
  await page.waitForSelector('.card');
- assert.strictEqual(await page.locator('.card').count(),4,'4 built-in fonts');
+ assert.strictEqual(await page.locator('.card').count(),5,'5 built-in fonts');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/library.png':undefined,...(process.env.SHOTS?{}:{type:'png'})});
  /* a stale page loads the newer version by itself (no hard refresh), and does not loop */
  const stale=await ctx.newPage();await stale.route('**/version.json*',r=>r.fulfill({status:200,contentType:'application/json',body:'{"version":"99.0.0"}'}));
@@ -95,10 +95,10 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-sword-shield-th]');await page.waitForSelector('#edit');
  assert.strictEqual(await page.locator('[data-act=dup-edit]').count(),0,'no read-only banner');assert.ok(await page.locator('#u-save').count(),'save button on a starter font');
  await page.click('.tab[data-tab=library]');await page.locator('[data-more=builtin-seaglass-th]').click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
- await page.waitForFunction(()=>document.querySelectorAll('.card').length===4,null,{timeout:5000});await page.click('[data-act=restore-seeds]');await page.waitForFunction(()=>document.querySelectorAll('.card').length===5,null,{timeout:5000});
- await page.locator('[data-more=builtin-sword-shield-th]').click();await page.click('[data-act=dup]');await page.waitForFunction(()=>FontLabApp.S.fonts.size===6);
+ await page.waitForFunction(()=>document.querySelectorAll('.card').length===5,null,{timeout:5000});await page.click('[data-act=restore-seeds]');await page.waitForFunction(()=>document.querySelectorAll('.card').length===6,null,{timeout:5000});
+ await page.locator('[data-more=builtin-sword-shield-th]').click();await page.click('[data-act=dup]');await page.waitForFunction(()=>FontLabApp.S.fonts.size===7);
  /* persistence */
- await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');assert.strictEqual(await page.locator('.card').count(),6,'user fonts persisted');
+ await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');assert.strictEqual(await page.locator('.card').count(),7,'user fonts persisted');
  /* cloud: uploads only when saving (auto upload is an opt-in switch); no login, no cloud tab */
  assert.strictEqual(await page.locator('.tab').count(),4,'library, studio, consoles, settings');assert.strictEqual(await page.locator('.tab[data-tab=cloud]').count(),0,'no cloud tab');assert.strictEqual(await page.locator('[data-act=sync],#c-form').count(),0,'no login form');
  await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:8000});
@@ -118,7 +118,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  assert.notStrictEqual(await page2.evaluate(()=>localStorage.getItem('fontlab.code.v2')),code);
  await page2.click('#page-library [data-act=cloud]');await page2.fill('#cc-in',code);await page2.click('#cc-use');
  await page2.waitForFunction(()=>[...document.querySelectorAll('.card')].filter(c=>!/ตั้งต้น/.test(c.innerText)).length===2,null,{timeout:8000});
- assert.strictEqual(await page2.locator('.card').count(),6,'fonts arrived on the other device');await ctx2.close();
+ assert.strictEqual(await page2.locator('.card').count(),7,'fonts arrived on the other device');await ctx2.close();
  /* delete -> the dot turns pending, the cloud copy goes on the next sync */
  await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ตั้งต้น")) .more').first().click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
  await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:5000});assert.strictEqual(vault().size,2,'not removed before syncing');
@@ -168,7 +168,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  {const octx=await browser.newContext({viewport:{width:390,height:844}}),op=await octx.newPage();await op.goto(base);await op.waitForSelector('.card');
   await op.evaluate(()=>navigator.serviceWorker.ready);await op.waitForFunction(()=>navigator.serviceWorker.controller,null,{timeout:8000});await op.reload();await op.waitForSelector('.card');
   const cached=await op.evaluate(async()=>(await caches.keys()).filter(k=>k.startsWith('fontlab-offline-')).length);assert.strictEqual(cached,1,'offline cache exists');
-  await octx.setOffline(true);await op.goto(base);await op.waitForSelector('.card',{timeout:8000});assert.strictEqual(await op.locator('.card').count(),4,'app opens offline with its starter fonts');
+  await octx.setOffline(true);await op.goto(base);await op.waitForSelector('.card',{timeout:8000});assert.strictEqual(await op.locator('.card').count(),5,'app opens offline with its starter fonts');
   await op.click('[data-open=builtin-quetzal-classic]');await op.waitForSelector('#edit',{timeout:5000});await octx.setOffline(false);await octx.close();}
  /* desktop layout */
  await page.setViewportSize({width:1280,height:820});await page.click('.tab[data-tab=library]');await page.locator('.card').first().click();await page.waitForSelector('#edit');

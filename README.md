@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.49** New built-in starter font “ไทยพิกเซล · Manop 8×16” (179 glyphs: 44 consonants, vowels and tone marks, Thai and Arabic digits, ASCII; one colour, no shadow; for every 8×16 console: GB, GBC, WS, NES, SNES, GG, SMS, MD, MCD, PCE, NGP, 2600). Based on the public-domain `manop/thai8x16.bdf` from TLWG thaixfonts (Manop Wongsaisuwan), moved to fit 16 rows (body rows 6–13). The checker now allows leading vowels and digits down to row 13 (was 12).
 - **1.0.48** Smaller status dot on the cloud icon (6 px, 7 px in the sidebar/sheets) with a proportionally smaller glow.
 - **1.0.47** The status light has no dark ring around it, only the glow.
 - **1.0.46** The cloud status light is a neon glow with a slow pulse (green saved, orange pending/syncing, red error); grey stays still.
