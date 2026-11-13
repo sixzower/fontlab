@@ -455,6 +455,20 @@ addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(TABS.some(x
  if(!Store.persistent())toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บฟอนต์ถาวร · ส่งออกไฟล์ไว้เสมอ');
  syncNow(true,true);
 })();
+/* ---------- iOS-style tooltips for icon-only buttons (mouse hover or keyboard focus) ---------- */
+(()=>{const tip=document.createElement('div');tip.className='tip';tip.setAttribute('role','tooltip');document.body.append(tip);let timer=0,cur=null;
+ const labelOf=el=>{if(el.title){el.dataset.tip=el.title;el.removeAttribute('title');}return(el.dataset.tip||el.getAttribute('aria-label')||'').replace(/\s*[(（].*$/,'').trim();};
+ const eligible=el=>!!el&&el.matches('button,[role=button]')&&!el.textContent.trim()&&!!(el.title||el.dataset.tip||el.getAttribute('aria-label'));
+ function hide(){clearTimeout(timer);timer=0;cur=null;tip.classList.remove('on');}
+ function show(el){const t=labelOf(el);if(!t||!el.isConnected)return;tip.textContent=t;tip.style.left='0px';tip.style.top='0px';
+  const r=el.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight;let top=r.bottom+8;if(top+h>innerHeight-8)top=r.top-h-8;
+  tip.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';tip.style.top=Math.max(8,top)+'px';tip.style.transformOrigin=top>r.top?'top center':'bottom center';tip.classList.add('on');}
+ const canHover=matchMedia('(hover:hover)');
+ document.addEventListener('mouseover',e=>{if(!canHover.matches)return;const el=e.target.closest?.('button,[role=button]');if(!eligible(el)){if(cur&&!(el&&el===cur))hide();return;}if(el===cur)return;hide();cur=el;timer=setTimeout(()=>show(el),320);});
+ document.addEventListener('mouseout',e=>{if(cur&&!cur.contains(e.relatedTarget))hide();});
+ document.addEventListener('focusin',e=>{const el=e.target;if(eligible(el)&&el.matches(':focus-visible')){hide();cur=el;show(el);}});
+ document.addEventListener('focusout',hide);document.addEventListener('pointerdown',hide,true);document.addEventListener('keydown',hide,true);addEventListener('scroll',hide,true);addEventListener('resize',hide);
+})();
 /* ---------- freshness: drop leftovers of the old app, load a newer version by itself ---------- */
 (async()=>{
  try{for(const r of await navigator.serviceWorker?.getRegistrations?.()||[])r.unregister();if(window.caches)for(const k of await caches.keys())caches.delete(k);}catch{}
