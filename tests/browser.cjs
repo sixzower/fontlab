@@ -29,6 +29,9 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await stale.goto(base);await stale.waitForURL(/[?&]v=99\.0\.0/,{timeout:8000});await stale.waitForSelector('.card');await stale.waitForTimeout(500);assert.ok(/[?&]v=99\.0\.0/.test(stale.url()),'moved to the new version');await stale.close();
  const wide=await ctx.newPage();await wide.setViewportSize({width:1900,height:900});await wide.goto(base);await wide.waitForSelector('.card');
  assert.ok(await wide.evaluate(()=>document.querySelector('.page.on').getBoundingClientRect().width)>1900-260,'page fills the screen next to the sidebar');await wide.close();
+ /* tooltips for icon-only buttons */
+ await page.hover('#page-library [data-act=new]');await page.waitForFunction(()=>/สร้างฟอนต์ใหม่/.test(document.querySelector('.tip.on')?.textContent||''),null,{timeout:3000});
+ await page.mouse.move(5,5);await page.waitForFunction(()=>!document.querySelector('.tip.on'),null,{timeout:3000});
  /* theme toggle + iOS menu */
  const bg=()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor);
  assert.strictEqual(await bg(),'rgb(255, 255, 255)','light mode is white');
