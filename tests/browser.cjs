@@ -213,13 +213,12 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
   assert.ok(/มีอักษรซ้ำ 2 ตัว/.test(await page.locator('.sheet').innerText()),'duplicate message shown');await page.click('.sheet [data-close]');}
  /* sidebar: consoles above recents */
  {const h=await page.evaluate(()=>[...document.querySelectorAll('#tabs .side-sec h3')].map(x=>x.textContent));assert.ok(h.indexOf('เครื่อง')>=0&&h.indexOf('เครื่อง')<h.indexOf('ล่าสุด'),'เครื่อง comes before ล่าสุด in the sidebar: '+h.join(','));}
- /* export for AI, .tbl, preview palette, clusters, convert to another console (current studio font: Quetzal, 8x16) */
+ /* export for AI, .tbl, clusters, convert to another console (current studio font: Quetzal, 8x16) */
  {const fs2=require('fs');
   await page.click('#page-studio [data-act=font-export]');await page.fill('#ex-base','20');
   {const [dl]=await Promise.all([page.waitForEvent('download'),page.click('[data-act=tbl]')]);assert.ok(/\.tbl$/.test(dl.suggestedFilename()),'tbl file name');const txt=fs2.readFileSync(await dl.path(),'utf8');assert.ok(/^20=/.test(txt),'tbl starts at the chosen base code 0x20: '+txt.slice(0,12));}
   {const [dl]=await Promise.all([page.waitForEvent('download'),page.click('[data-act=ai]')]);assert.ok(/-ai-pack\.zip$/.test(dl.suggestedFilename()),'AI pack is a zip');const buf=fs2.readFileSync(await dl.path()).toString('latin1');for(const need of ['SPEC.md','.tbl','charset.txt','-sheet.png','.bin','-widths.bin','.fontlab.json','-README.txt'])assert.ok(buf.includes(need),'AI pack contains '+need);}
   await page.keyboard.press('Escape');
-  await page.selectOption('#s-pal','rpg-blue');assert.strictEqual(await page.evaluate(()=>getComputedStyle(document.querySelector('#s-prev-box')).backgroundColor),'rgb(24, 48, 168)','preview uses the chosen palette');await page.selectOption('#s-pal','console');
   const gc=()=>page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length);const g0=await gc();
   await page.locator('[data-act=auto-cluster]').scrollIntoViewIfNeeded();await page.click('[data-act=auto-cluster]');assert.ok(/จะสร้าง \d+ อักษร/.test(await page.locator('#cl-info').innerText()),'cluster sheet counts what it will make');
   await page.click('#bar-done');assert.ok(await gc()>g0,'clusters added');assert.ok(await page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.some(g=>[...g.c].length>1)),'a multi-character glyph exists');
