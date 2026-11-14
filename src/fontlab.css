@@ -252,3 +252,7 @@ select.native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:no
 .card[draggable=true]{cursor:grab}
 .card.dragging{opacity:.45;transform:scale(.97)}
 .card.drop{outline:3px dashed var(--accent);outline-offset:-3px}
+
+.gl[draggable=true]{cursor:grab}
+.gl.dragging{opacity:.45}
+.gl.drop{outline:3px dashed var(--accent);outline-offset:-3px}
