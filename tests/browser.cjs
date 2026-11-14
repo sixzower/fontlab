@@ -213,6 +213,16 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
   assert.ok(/มีอักษรซ้ำ 2 ตัว/.test(await page.locator('.sheet').innerText()),'duplicate message shown');await page.click('.sheet [data-close]');}
  /* sidebar: consoles above recents */
  {const h=await page.evaluate(()=>[...document.querySelectorAll('#tabs .side-sec h3')].map(x=>x.textContent));assert.ok(h.indexOf('เครื่อง')>=0&&h.indexOf('เครื่อง')<h.indexOf('ล่าสุด'),'เครื่อง comes before ล่าสุด in the sidebar: '+h.join(','));}
+ /* studio: drag a glyph thumbnail onto another to move it; Shift+click sends the selected glyph there */
+ {const order=()=>page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.map(g=>g.c).join(''));
+  await page.evaluate(()=>{document.activeElement&&document.activeElement.blur();});
+  const tail=(await order()).slice(-2);assert.strictEqual(tail,'DE','glyphs D and E are the last two (pasted above)');
+  await page.evaluate(()=>{const A=document.querySelector('#s-glyphs .gl[aria-label="อักษร E"]'),B=document.querySelector('#s-glyphs .gl[aria-label="อักษร D"]'),dt=new DataTransfer(),ev=(t,el)=>el.dispatchEvent(new DragEvent(t,{bubbles:true,cancelable:true,dataTransfer:dt}));ev('dragstart',A);ev('dragover',B);ev('drop',B);ev('dragend',A);});
+  assert.strictEqual((await order()).slice(-2),'ED','dragging E onto D moves E before D');
+  await page.click('#u-undo');assert.strictEqual((await order()).slice(-2),'DE','the move is undoable');
+  await page.locator('#s-glyphs .gl[aria-label="อักษร E"]').click();await page.locator('#s-glyphs .gl[aria-label="อักษร D"]').click({modifiers:['Shift']});
+  assert.strictEqual((await order()).slice(-2),'ED','Shift+click sends the selected glyph to the clicked position');
+  await page.click('#u-undo');assert.strictEqual((await order()).slice(-2),'DE');}
  /* export for AI, .tbl, clusters, convert to another console (current studio font: Quetzal, 8x16) */
  {const fs2=require('fs');
   await page.click('#page-studio [data-act=font-export]');await page.fill('#ex-base','20');

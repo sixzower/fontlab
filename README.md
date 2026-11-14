@@ -29,6 +29,7 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.63** Studio: reorder glyphs in the character list — drag a thumbnail onto another one to move it there, or select a glyph and Shift+click the target; undoable. (Before, only the one-step up / down buttons in the manage sheet could move a glyph.)
 - **1.0.62** Removed the preview palette picker added in 1.0.61 (not needed).
 - **1.0.61** Export: “ชุดสำหรับ AI (.zip)” (SPEC.md with the bit format, glyph table, layout rules and do/don't list, plus the .tbl, charset.txt, sheet PNG, .bin, widths, JSON and README) and a separate `.tbl` (HEX=character, first code selectable, 2-byte codes when needed). “แปลงให้เข้ากับเครื่อง” (studio tools or card menu): makes a copy for another console and cell size, either padding/cropping or scaling the pixels (majority vote), with the shadow kept or dropped (always dropped on 1-bit consoles). “สร้างอักษรผสมอัตโนมัติ”: builds consonant + tone / upper vowel / vowel + tone cluster glyphs, skipping combinations whose pixels collide.
 - **1.0.60** Sidebar: the “เครื่อง” list now sits above “ล่าสุด”.

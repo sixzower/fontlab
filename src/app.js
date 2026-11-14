@@ -343,6 +343,14 @@ function mountStudio(){
 const MARK=/^[ัิ-ฺ็-๎]/;
 const glyphLabel=g=>(MARK.test(g.c)?'◌':'')+(g.c===' '?'␠':g.c);
 const GL_CHUNK=240;
+/* reorder glyphs: drag a thumbnail onto another one, or Shift+click a thumbnail to send the glyph being edited there */
+function moveGlyphTo(from,to){if(from===to||from<0)return false;let ok=false;
+ structChange(f=>{if(to<0||to>=f.glyphs.length||from>=f.glyphs.length)return false;const [g]=f.glyphs.splice(from,1);f.glyphs.splice(to,0,g);S.idx=to;ok=true;});return ok;}
+let dragGl=null;
+document.addEventListener('dragstart',e=>{const b=e.target.closest?.('#s-glyphs .gl');if(!b)return;dragGl=+b.dataset.i;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',String(dragGl));}catch{}b.classList.add('dragging');});
+document.addEventListener('dragover',e=>{if(dragGl===null)return;const b=e.target.closest?.('#s-glyphs .gl');$$('#s-glyphs .gl.drop').forEach(x=>{if(x!==b)x.classList.remove('drop');});if(!b||+b.dataset.i===dragGl)return;e.preventDefault();e.dataTransfer.dropEffect='move';b.classList.add('drop');});
+document.addEventListener('drop',e=>{if(dragGl===null)return;const b=e.target.closest?.('#s-glyphs .gl');if(!b)return;e.preventDefault();const from=dragGl;dragGl=null;if(moveGlyphTo(from,+b.dataset.i))toast('ย้ายอักษรแล้ว · ย้อนกลับได้');});
+document.addEventListener('dragend',()=>{dragGl=null;$$('#s-glyphs .gl.dragging,#s-glyphs .gl.drop').forEach(x=>x.classList.remove('dragging','drop'));});
 const GSEL=new Set(); /* characters picked in the studio list with Ctrl/Cmd+click, for a bulk delete */
 function updateGSel(){const bar=$('#g-selbar');if(!bar)return;bar.hidden=!GSEL.size;$('#g-seln',bar).textContent='เลือก '+GSEL.size+' อักษร';
  $$('#s-glyphs .gl').forEach(b=>{const g=(S.fonts.get(S.cur)?.glyphs||[])[+b.dataset.i],on=!!g&&GSEL.has(g.c);b.classList.toggle('sel',on);b.setAttribute('aria-selected',on?'true':'false');});}
@@ -404,7 +412,7 @@ function confirmDeleteGlyphs(){const f=editable();if(!f)return;const list=f.glyp
 function buildGlyphList(){const f=S.fonts.get(S.cur),box=$('#s-glyphs'),q=($('#s-find')?.value||'').trim();if(!f||!box)return;box.innerHTML='';
  const list=[];f.glyphs.forEach((g,i)=>{if(!q||g.c.includes(q))list.push(i);});S.glList=list;S.glRendered=0;renderGlyphChunk(Math.max(GL_CHUNK,list.indexOf(S.idx)+1));}
 function renderGlyphChunk(upto){const f=S.fonts.get(S.cur),box=$('#s-glyphs');if(!f||!box)return;box.querySelector('.gl-more')?.remove();const colors=pal(f),sc=Math.max(1,Math.floor(32/f.h)),list=S.glList||[];
- for(;S.glRendered<Math.min(upto,list.length);S.glRendered++){const i=list[S.glRendered],g=f.glyphs[i];const b=document.createElement('button');b.className='gl'+(GSEL.has(g.c)?' sel':'');b.dataset.i=i;b.setAttribute('aria-pressed',i===S.idx);b.setAttribute('aria-label','อักษร '+g.c);
+ for(;S.glRendered<Math.min(upto,list.length);S.glRendered++){const i=list[S.glRendered],g=f.glyphs[i];const b=document.createElement('button');b.className='gl'+(GSEL.has(g.c)?' sel':'');b.draggable=true;b.dataset.i=i;b.setAttribute('aria-pressed',i===S.idx);b.setAttribute('aria-label','อักษร '+g.c);
   const cv=document.createElement('canvas');cv.width=f.w*sc;cv.height=f.h*sc;const cx=cv.getContext('2d');cx.fillStyle=colors[0];cx.fillRect(0,0,cv.width,cv.height);drawGlyph(cx,f,g,0,0,sc,colors);
   const sp=document.createElement('span');sp.textContent=glyphLabel(g);b.append(cv,sp);box.append(b);}
  if(S.glRendered<list.length){const more=document.createElement('div');more.className='gl-more';more.textContent='กำลังโหลดอักษรเพิ่ม…';box.append(more);
@@ -688,7 +696,7 @@ document.addEventListener('click',e=>{const t=e.target;
  const tool=t.closest('[data-tool]');if(tool){S.tool=tool.dataset.tool;return $$('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b===tool));}
  const col=t.closest('[data-color]');if(col){S.color=+col.dataset.color;S.tool=S.tool==='eraser'?'pencil':S.tool;$$('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===S.tool));return $$('[data-color]').forEach(b=>b.setAttribute('aria-pressed',b===col));}
  const op=t.closest('[data-op]');if(op)return transform(op.dataset.op);
- const gl=t.closest('.gl');if(gl){if(e.ctrlKey||e.metaKey||GSEL.size)return toggleGSel(+gl.dataset.i);return selectGlyph(+gl.dataset.i);}
+ const gl=t.closest('.gl');if(gl){if(e.shiftKey&&!GSEL.size){const to=+gl.dataset.i;if(to!==S.idx&&moveGlyphTo(S.idx,to))toast('ย้ายอักษรแล้ว · ย้อนกลับได้');return;}if(e.ctrlKey||e.metaKey||GSEL.size)return toggleGSel(+gl.dataset.i);return selectGlyph(+gl.dataset.i);}
  const a=t.closest('[data-act]')?.dataset.act;if(!a||t.closest('.sheet'))return;
  if(a==='theme'){applyTheme(isDark()?'light':'dark',true);return;}
  if(a==='new')newFontSheet();else if(a==='import')pickFiles('.json,application/json,.png,.bin');else if(a==='settings')settingsSheet();else if(a==='export')exportSheet();
@@ -697,7 +705,7 @@ document.addEventListener('click',e=>{const t=e.target;
  else if(a==='cloud')cloudSheet();});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.query=e.target.value;renderLibrary();}});
 /* studio keyboard shortcuts (listed by “?”) */
-const SHORTCUTS=[['Ctrl+Z / Ctrl+Y','ย้อนกลับ / ทำซ้ำ (Ctrl+Shift+Z ก็ได้)'],['Ctrl+C / Ctrl+X / Ctrl+V','คัดลอก / ตัด / วางภาพอักษร (ถ้าเลือกหลายอักษรไว้ จะคัดลอกทั้งชุดไปวางในฟอนต์อื่น)'],['Ctrl+S','บันทึก'],['← → ↑ ↓','เลื่อนภาพอักษรทีละ 1 พิกเซล (ถ้าโฟกัสกริดด้วยแป้นพิมพ์ ลูกศรจะเลื่อนเคอร์เซอร์แทน)'],['P / E / F / I','ดินสอ / ยางลบ / เทสี / ดูดสี'],['1 2 3 4','เลือกสี'],['H / V','พลิกแนวนอน / แนวตั้ง'],['Delete','ล้างอักษร'],['[  ]  หรือ PageUp / PageDown','อักษรก่อนหน้า / ถัดไป'],['G','เปิด/ปิดเส้นกริด'],['?','แสดงรายการนี้']];
+const SHORTCUTS=[['Ctrl+Z / Ctrl+Y','ย้อนกลับ / ทำซ้ำ (Ctrl+Shift+Z ก็ได้)'],['Ctrl+C / Ctrl+X / Ctrl+V','คัดลอก / ตัด / วางภาพอักษร (ถ้าเลือกหลายอักษรไว้ จะคัดลอกทั้งชุดไปวางในฟอนต์อื่น)'],['Ctrl+S','บันทึก'],['← → ↑ ↓','เลื่อนภาพอักษรทีละ 1 พิกเซล (ถ้าโฟกัสกริดด้วยแป้นพิมพ์ ลูกศรจะเลื่อนเคอร์เซอร์แทน)'],['P / E / F / I','ดินสอ / ยางลบ / เทสี / ดูดสี'],['1 2 3 4','เลือกสี'],['H / V','พลิกแนวนอน / แนวตั้ง'],['Delete','ล้างอักษร'],['ลากอักษรในรายการ หรือ Shift+คลิก','ย้ายตำแหน่งอักษร (Shift+คลิก = ส่งอักษรที่เลือกอยู่ไปตำแหน่งนั้น)'],['[  ]  หรือ PageUp / PageDown','อักษรก่อนหน้า / ถัดไป'],['G','เปิด/ปิดเส้นกริด'],['?','แสดงรายการนี้']];
 const KEYHINT={'[data-tool=pencil]':'P','[data-tool=eraser]':'E','[data-tool=fill]':'F','[data-tool=pick]':'I','[data-op=clear]':'Delete','[data-op=shift-l]':'←','[data-op=shift-r]':'→','[data-op=shift-u]':'↑','[data-op=shift-d]':'↓','[data-op=flip-h]':'H','[data-op=flip-v]':'V','[data-op=copy]':'Ctrl+C','[data-op=paste]':'Ctrl+V','#u-undo':'Ctrl+Z','#u-redo':'Ctrl+Y','[data-act=grid]':'G','[data-act=save]':'Ctrl+S'};
 function addKeyHints(){for(const [sel,k] of Object.entries(KEYHINT))for(const b of $$('#page-studio '+sel)){const t=(b.getAttribute('title')||b.getAttribute('aria-label')||'').replace(/\s*\([^)]*\)\s*$/,'');b.setAttribute('title',t+' ('+k+')');}
  $$('#page-studio [data-color]').forEach(b=>b.setAttribute('title','สี '+(+b.dataset.color+1)+' (กด '+(+b.dataset.color+1)+')'));}
