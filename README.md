@@ -29,6 +29,8 @@ Rows 0–5 tone marks and upper vowels · 6–12 consonant body (baseline under 
 
 ## Changelog
 
+- **1.0.60** Sidebar: the “เครื่อง” list now sits above “ล่าสุด”.
+- **1.0.59** Library: drag a font card onto another card of the same group (my fonts, or starter fonts) to reorder; the card menu has “ย้ายขึ้น / ย้ายลง” for touch screens; the order is kept on this device. Studio: copy several glyphs (Ctrl+click to pick, then “คัดลอก”, Ctrl+C, or “คัดลอก / วางข้ามฟอนต์” for the whole font) and paste them into another font (Ctrl+V or the same sheet). Glyphs the target already has are skipped and listed in a “มีอักษรซ้ำ” message; when the cell sizes differ the images are pasted at the top-left and a note says so.
 - **1.0.58** Studio: the ⋯ “เมนูเพิ่มเติม” is removed; its items sit directly in the top bar as buttons: font settings, export and the shortcut list (next to save / add as new font).
 - **1.0.57** Studio shortcuts now work on any keyboard layout (they read the physical key, so Ctrl+Z, C, V, X, S and P / E / F / I / H / V / G / 1–4 / [ ] / ? work with the Thai layout too — before, Thai letters in the key value broke them). The ⋯ menu has a “ปุ่มลัดแป้นพิมพ์” entry.
 - **1.0.56** Studio: a keyboard button in the top bar opens the shortcut list (still “?” too), and the hover tooltips of the studio buttons show their key (e.g. ดินสอ (P), ย้อนกลับ (Ctrl+Z)). Tooltips keep short key hints and still drop long Thai explanations.

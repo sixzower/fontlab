@@ -199,6 +199,29 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
   await page.click('[data-act=gsel-del]');await page.click('[data-act=yes]');
   await page.waitForFunction(n=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length===n-3,n0,{timeout:5000});
   assert.ok(await page.evaluate(()=>!FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.some(g=>'ABC'.includes(g.c))),'A B C deleted');}
+ /* copy several glyphs and paste them into another font; duplicates are reported */
+ {const cnt=id=>page.evaluate(i=>FontLabApp.S.fonts.get(i).glyphs.length,id);
+  await page.evaluate(()=>{document.activeElement&&document.activeElement.blur();});
+  await page.locator('#s-glyphs .gl[aria-label="อักษร D"]').click();await page.locator('#s-glyphs .gl[aria-label="อักษร E"]').click({modifiers:['Control']});
+  await page.click('[data-act=gsel-copy]');assert.ok(await page.evaluate(()=>FontLabApp.S.gclip&&FontLabApp.S.gclip.glyphs.map(g=>g.c).join('')==='DE'),'D and E copied');
+  await page.click('.tab[data-tab=library]');await page.click('[data-open=builtin-quetzal-classic]');await page.waitForSelector('#edit');await page.evaluate(()=>{document.activeElement&&document.activeElement.blur();});
+  const n0=await cnt('builtin-quetzal-classic');
+  await page.keyboard.press('Control+v');assert.strictEqual(await cnt('builtin-quetzal-classic'),n0+2,'pasted D and E into the other font');
+  assert.ok(/ขนาดช่องต่างกัน/.test(await page.locator('.sheet').innerText()),'size difference is reported');await page.click('.sheet [data-close]');
+  await page.evaluate(()=>{document.activeElement&&document.activeElement.blur();});
+  await page.keyboard.press('Control+v');assert.strictEqual(await cnt('builtin-quetzal-classic'),n0+2,'nothing added the second time');
+  assert.ok(/มีอักษรซ้ำ 2 ตัว/.test(await page.locator('.sheet').innerText()),'duplicate message shown');await page.click('.sheet [data-close]');}
+ /* sidebar: consoles above recents */
+ {const h=await page.evaluate(()=>[...document.querySelectorAll('#tabs .side-sec h3')].map(x=>x.textContent));assert.ok(h.indexOf('เครื่อง')>=0&&h.indexOf('เครื่อง')<h.indexOf('ล่าสุด'),'เครื่อง comes before ล่าสุด in the sidebar: '+h.join(','));}
+ /* library: drag a card onto another one to reorder (starters included); the card menu moves it up / down; the order is saved */
+ {await page.click('.tab[data-tab=library]');await page.waitForSelector('#page-library .card');
+  const seedIds=()=>page.evaluate(()=>[...document.querySelectorAll('#page-library .card[data-group=seed]')].map(c=>c.dataset.open));
+  const s0=await seedIds();assert.ok(s0.length>=3,'at least 3 starter cards');
+  await page.evaluate(([a,b])=>{const A=document.querySelector('#page-library .card[data-open="'+a+'"]'),B=document.querySelector('#page-library .card[data-open="'+b+'"]'),dt=new DataTransfer(),ev=(t,el)=>el.dispatchEvent(new DragEvent(t,{bubbles:true,cancelable:true,dataTransfer:dt}));ev('dragstart',A);ev('dragover',B);ev('drop',B);ev('dragend',A);},[s0[0],s0[2]]);
+  const s1=await seedIds();assert.strictEqual(s1[2],s0[0],'dragged starter card lands at the target position');
+  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('fontlab.order.v1')||'[]').length>0),'custom order saved');
+  await page.locator('[data-more="'+s1[0]+'"]').click();await page.click('[data-act=move-down]');const s2=await seedIds();assert.strictEqual(s2[1],s1[0],'move down from the card menu');
+  }
  await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');await page.locator('.card:has-text("พิกเซล")').first().click();await page.waitForSelector('#edit');
  const chunk=await page.locator('#s-glyphs .gl').count();assert.ok(chunk<=240&&chunk>=200,'first chunk only: '+chunk);await page.locator('.gl-more').scrollIntoViewIfNeeded();await page.waitForFunction(n=>document.querySelectorAll('#s-glyphs .gl').length>n,chunk,{timeout:5000});
  /* starter fonts: mark any font as a starter in its menu, start a new font from it */
