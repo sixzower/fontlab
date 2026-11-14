@@ -202,6 +202,99 @@ function layoutText(pr,text,maxWidth=Infinity){
   items.push({g,x,line});base={x,line};x+=g.a||pr.w;i+=len;}
  return items;}
 
+
+/* ---------- AI pack: character table, charset list and a spec an AI can follow to use the font correctly ---------- */
+const hexW=(pr,base)=>(base+Math.max(0,pr.glyphs.length-1))>255?4:2;
+const hexOf=(n,w)=>n.toString(16).toUpperCase().padStart(w,'0');
+function tblText(pr,{base=0}={}){const w=hexW(pr,base);
+ return pr.glyphs.map((g,i)=>hexOf(base+i,w)+'='+g.c).join('\n')+'\n';}
+function charsetText(pr){const by={};for(const g of pr.glyphs){const k=classOf(g.c);(by[k]=by[k]||[]).push(g.c);}
+ const out=['Characters available in "'+pr.name+'" ('+pr.glyphs.length+' glyphs). Use ONLY these characters in translated text; anything else has no picture.',''];
+ for(const k of Object.keys(CLASS_NAMES))if(by[k])out.push(k+' ('+CLASS_NAMES[k]+', '+by[k].length+'): '+by[k].join(' '));
+ const missing=[...THAI].filter(c=>c!==' '&&!pr.glyphs.some(g=>g.c===c));
+ if(missing.length)out.push('','Thai letters / signs NOT in this font ('+missing.length+'): '+missing.join(' '));
+ return out.join('\n')+'\n';}
+const FORMAT_HELP={
+ p1:'1 bit per pixel, tiles of 8x8, 8 bytes per tile, one byte per row, most significant bit = leftmost pixel.',
+ gb2:'2 bits per pixel, tiles of 8x8, 16 bytes per tile. For each row y: byte 2y = bit-plane 0, byte 2y+1 = bit-plane 1. Most significant bit = leftmost pixel. pixel = plane0bit | plane1bit<<1.',
+ nes2:'2 bits per pixel, tiles of 8x8, 16 bytes per tile. Bytes 0-7 = bit-plane 0 (one byte per row), bytes 8-15 = bit-plane 1. Most significant bit = leftmost pixel.',
+ snes4:'4 bits per pixel, tiles of 8x8, 32 bytes per tile. Bytes 0-15 = planes 0 and 1 interleaved per row (like gb2), bytes 16-31 = planes 2 and 3 interleaved per row. Most significant bit = leftmost pixel.',
+ sms4:'4 bits per pixel, tiles of 8x8, 32 bytes per tile. For each row y: 4 bytes = bit-planes 0,1,2,3. Most significant bit = leftmost pixel.',
+ md4:'4 bits per pixel, tiles of 8x8, 32 bytes per tile, rows top to bottom, 2 pixels per byte, HIGH nibble = left pixel.',
+ gba4:'4 bits per pixel, tiles of 8x8, 32 bytes per tile, rows top to bottom, 2 pixels per byte, LOW nibble = left pixel.',
+ lin4:'4 bits per pixel, NOT tiled: the whole glyph is one linear bitmap, rows top to bottom, 2 pixels per byte, LOW nibble first.',
+ lin8:'8 bits per pixel, NOT tiled: the whole glyph is one linear bitmap, rows top to bottom.'};
+function formatKey(pr){return formatFor(pr).key||'';}
+function aiSpec(pr,{base=0,files={}}={}){
+ const c=consoleOf(pr.console),f=formatFor(pr),per=bytesPerGlyph(pr),key=formatKey(pr),w=hexW(pr,base),marks=pr.glyphs.filter(g=>MARK_ONLY.test(g.c)).map(g=>g.c),clusters=pr.glyphs.filter(g=>[...g.c].length>1).map(g=>g.c);
+ const names=Object.assign({json:'font.fontlab.json',bin:'font.bin',widths:'font-widths.bin',png:'font-sheet.png',tbl:'font.tbl',charset:'charset.txt',readme:'README.txt'},files);
+ const zones=tooShort(pr.h)?'':zonesFor(pr.h).map(z=>'- rows '+z.rows[0]+'-'+z.rows[1]+': '+z.name).join('\n');
+ const L=[];
+ L.push('# FontLab font pack: '+pr.name,'',
+  'This pack describes ONE bitmap font so that you (an AI assistant) can render text with it, encode text for a ROM, or write tools that read it. Read the whole file before you start. If anything below is unclear, ask the user instead of guessing.','',
+  '## 1. Summary','',
+  '| item | value |','|---|---|',
+  '| console | '+c.name+' ('+c.short+') |','| glyph cell | '+pr.w+' x '+pr.h+' pixels |','| colour depth | '+pr.bpp+' bits per pixel |','| binary format | '+f.name+' |',
+  '| glyph count | '+pr.glyphs.length+' |','| bytes per glyph in the .bin | '+per+' |','| first character code | 0x'+hexOf(base,w)+' (code = first code + glyph index) |','',
+  '## 2. Files in this pack','',
+  '- `'+names.json+'`: the complete font (source of truth). `glyphs[i].c` = character(s), `.p` = string of '+pr.w*pr.h+' digits (row by row, left to right, top to bottom; 0 = transparent, 1 = ink, 2 = shadow, 3 = extra colour), `.a` = advance width in pixels.',
+  '- `'+names.png+'`: picture of every glyph in index order, for looking at the design.',
+  '- `'+names.bin+'`: the glyph bitmaps in the console tile format (section 3).',
+  '- `'+names.widths+'`: one byte per glyph, the advance width in pixels (same order).',
+  '- `'+names.tbl+'`: character table `HEX=character`, used by ROM text tools (section 6).',
+  '- `'+names.charset+'`: the characters that exist in this font.','- `'+names.readme+'`: offsets table.','',
+  '## 3. Bitmap format of the .bin','',
+  FORMAT_HELP[key]||f.name,'',
+  f.linear?'Each glyph is '+per+' bytes. Glyph i starts at byte offset i * '+per+'.':'Each glyph is made of '+Math.ceil(pr.w/8)+' x '+Math.ceil(pr.h/8)+' tiles of 8x8 pixels ('+f.bytes+' bytes per tile), stored left to right then top to bottom, so one glyph is '+per+' bytes and glyph i starts at byte offset i * '+per+'. The cell is padded with transparent pixels up to a multiple of 8.',
+  'Pixel values: 0 = transparent / background, 1 = ink, 2 = shadow, 3 = extra. Palette hint for this console: '+c.colors.join(', ')+'. Real games map these indexes to their own palette.',
+  '','Do not decode the .bin if you can avoid it: the JSON gives the exact same pixels as plain digits.','',
+  '## 4. Character table','','Format: `index | code (hex) | advance | character | unicode`. The advance is how far to move right after drawing the glyph.','','```');
+ pr.glyphs.forEach((g,i)=>L.push(String(i).padStart(4)+' | 0x'+hexOf(base+i,w)+' | '+String(g.a??pr.w).padStart(2)+' | '+g.c+' | '+[...g.c].map(ch=>'U+'+ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join('+')));
+ L.push('```','',
+  '## 5. How to lay out text','',
+  '1. Walk the string left to right. At each position take the LONGEST run of up to 8 characters that is a glyph in the table (some glyphs are clusters such as a consonant with its vowel and tone mark drawn as one picture), otherwise skip the character and report it as unsupported.',
+  '2. Draw the glyph with its top-left corner at (x, line * '+pr.h+'). Pixel 0 is transparent.',
+  '3. Then x += advance of that glyph (advance 0 or missing means the full cell width '+pr.w+').',
+  '4. '+(marks.length?'Mark-only glyphs ('+marks.join(' ')+') are drawn ON TOP of the previous letter at the previous letter\'s x position and add no width. A game that cannot overlay glyphs must use the cluster glyphs instead'+(clusters.length?' (this font has '+clusters.length+' clusters, e.g. '+clusters.slice(0,6).join(' ')+')':' (this font has none yet, ask the user to generate them)')+'.':'This font has no separate mark glyphs.'),
+  '5. Wrap lines yourself: stop a line before x + advance exceeds the text box width. Never split a cluster or a consonant from its marks.','');
+ if(zones)L.push('## 6a. Vertical zones of the '+pr.h+'-pixel cell (Thai)','',zones,'');
+ L.push('## 6. Character table (.tbl)','',
+  '`'+names.tbl+'` has one line per glyph: `'+hexOf(base,w)+'=character`. Codes are '+(w/2)+' byte'+(w>2?'s':'')+' wide, starting at 0x'+hexOf(base,w)+' for glyph 0 and increasing by 1. This matches the glyph order in the .bin and the table in section 4. If the game uses its own code assignment, the user must give you the game\'s table: do not assume this one.','',
+  '## 7. Rules for you','',
+  '- Use only characters listed in `'+names.charset+'`. If the source text needs others, tell the user which ones.',
+  '- Keep every line within the text box width of the game (ask the user for it). Measure with the advances in section 4, not with the cell width.',
+  '- Do not change glyph pixels, order or advances unless asked; if you do, produce a new `'+names.json+'` with `glyphs[i].p` still exactly '+pr.w*pr.h+' digits.',
+  '- If a request mixes consoles or cell sizes, stop and ask: this font is only valid for '+pr.w+' x '+pr.h+' cells at '+pr.bpp+' bpp.','');
+ return L.join('\n');}
+
+/* ---------- smart convert: another console / cell size, colours reduced sensibly ---------- */
+function resampleGlyph(p,w,h,nw,nh){if(w===nw&&h===nh)return p;let o='';
+ for(let y=0;y<nh;y++)for(let x=0;x<nw;x++){const x0=Math.floor(x*w/nw),x1=Math.max(x0+1,Math.ceil((x+1)*w/nw)),y0=Math.floor(y*h/nh),y1=Math.max(y0+1,Math.ceil((y+1)*h/nh)),cnt=[0,0,0,0];let n=0;
+  for(let yy=y0;yy<y1&&yy<h;yy++)for(let xx=x0;xx<x1&&xx<w;xx++){cnt[+p[yy*w+xx]||0]++;n++;}
+  const ink=cnt[1]+cnt[2]+cnt[3];let best=0;if(n&&ink*2>=n){best=1;for(const k of [3,2])if(cnt[k]>cnt[best])best=k;}o+=best;}
+ return o;}
+function smartConvert(src,{console:cid,w,h,bpp,mode='pad',shadow='keep'}={}){
+ const c=consoleOf(cid||src.console);w=w||c.cell[0];h=h||c.cell[1];bpp=bpp||c.bpp;const cap=(1<<bpp)-1,drop=shadow==='drop'||cap<2;
+ const glyphs=src.glyphs.map(g=>{let p=mode==='scale'?resampleGlyph(g.p,src.w,src.h,w,h):resizeGlyph(g.p,src.w,src.h,w,h);
+  p=p.replace(/[0-3]/g,d=>{let v=+d;if(drop&&v===2)v=0;if(v>cap)v=cap>=1?1:0;return String(v);});
+  const a=mode==='scale'?Math.max(g.a?1:0,Math.min(w,Math.round((g.a??src.w)*w/src.w))):Math.min(g.a??w,w);
+  return{c:g.c,p,a};});
+ return{...src,console:c.id,w,h,bpp,updatedAt:Date.now(),glyphs};}
+
+/* ---------- precomposed clusters: consonant + upper vowel / tone mark as one picture ---------- */
+const CL_CONS=[...'กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ'],CL_VOW=[...'ัิีึื็'],CL_TONE=[...'่้๊๋์'];
+function makeClusters(pr,{tone=true,vowel=true,both=true,limit=2048}={}){
+ const have=new Map(pr.glyphs.map(g=>[g.c,g])),made=[],skipped=[],dupes=[];
+ const overlay=(a,b)=>{let o='',clash=false;for(let i=0;i<a.length;i++){const x=a[i],y=b[i];if(x!=='0'&&y!=='0'){clash=true;}o+=y!=='0'&&x==='0'?y:x;}return clash?null:o;};
+ const add=(token,base,marks)=>{if(have.has(token)||made.some(m=>m.c===token)){dupes.push(token);return;}
+  let p=base.p;for(const m of marks){const g=have.get(m);if(!g){skipped.push(token);return;}p=overlay(p,g.p);if(p===null){skipped.push(token);return;}}
+  if(pr.glyphs.length+made.length>=limit){skipped.push(token);return;}made.push({c:token,p,a:base.a});};
+ for(const k of CL_CONS){const base=have.get(k);if(!base)continue;
+  if(tone)for(const t of CL_TONE)add(k+t,base,[t]);
+  if(vowel)for(const v of CL_VOW)add(k+v,base,[v]);
+  if(both)for(const v of CL_VOW.slice(0,4))for(const t of CL_TONE.slice(0,4))add(k+v+t,base,[v,t]);}
+ return{glyphs:made,skipped,dupes};}
+
 /* ---------- starter files ---------- */
 function glyphOrderText(pr){const per=bytesPerGlyph(pr);return pr.glyphs.map((g,i)=>String(i).padStart(4,'0')+'  0x'+(i*per).toString(16).padStart(6,'0').toUpperCase()+'  '+String(g.a).padStart(2)+'  '+g.c+'  U+'+[...g.c].map(ch=>ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join('+')).join('\n');}
 function readme(pr){const c=consoleOf(pr.console),f=formatFor(pr),per=bytesPerGlyph(pr),s=sheetSize(pr);
@@ -229,6 +322,6 @@ function zip(files){const enc=new TextEncoder(),parts=[],central=[];let off=0;
  const csize=central.reduce((n,p)=>n+p.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,csize,true);end.setUint32(16,off,true);
  const all=[...parts,...central,new Uint8Array(end.buffer)],out=new Uint8Array(all.reduce((n,p)=>n+p.length,0));let o=0;for(const p of all){out.set(p,o);o+=p.length;}return out;}
 
-return{autoSpacing,widthsBank,SHADOW_DIRS,addShadow,removeShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
+return{aiSpec,tblText,charsetText,formatKey,smartConvert,resampleGlyph,makeClusters,autoSpacing,widthsBank,SHADOW_DIRS,addShadow,removeShadow,CONSOLES,GROUPS,ZONES,ALLOWED,CLASS_NAMES,classOf,zonesFor,tooShort,checkGlyph,checkFont,FORMATS,consoleOf,formatFor,maxIndex,THAI,defaultCharset,newProject,convertProject,starter,normalize,fromLegacy,resizeGlyph,blank,
  bytesPerGlyph,exportBank,importBank,sheetSize,renderSheet,readSheet,layoutText,readme,zip,crc32,uid};
 });

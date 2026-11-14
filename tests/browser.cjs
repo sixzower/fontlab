@@ -213,6 +213,21 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
   assert.ok(/มีอักษรซ้ำ 2 ตัว/.test(await page.locator('.sheet').innerText()),'duplicate message shown');await page.click('.sheet [data-close]');}
  /* sidebar: consoles above recents */
  {const h=await page.evaluate(()=>[...document.querySelectorAll('#tabs .side-sec h3')].map(x=>x.textContent));assert.ok(h.indexOf('เครื่อง')>=0&&h.indexOf('เครื่อง')<h.indexOf('ล่าสุด'),'เครื่อง comes before ล่าสุด in the sidebar: '+h.join(','));}
+ /* export for AI, .tbl, preview palette, clusters, convert to another console (current studio font: Quetzal, 8x16) */
+ {const fs2=require('fs');
+  await page.click('#page-studio [data-act=font-export]');await page.fill('#ex-base','20');
+  {const [dl]=await Promise.all([page.waitForEvent('download'),page.click('[data-act=tbl]')]);assert.ok(/\.tbl$/.test(dl.suggestedFilename()),'tbl file name');const txt=fs2.readFileSync(await dl.path(),'utf8');assert.ok(/^20=/.test(txt),'tbl starts at the chosen base code 0x20: '+txt.slice(0,12));}
+  {const [dl]=await Promise.all([page.waitForEvent('download'),page.click('[data-act=ai]')]);assert.ok(/-ai-pack\.zip$/.test(dl.suggestedFilename()),'AI pack is a zip');const buf=fs2.readFileSync(await dl.path()).toString('latin1');for(const need of ['SPEC.md','.tbl','charset.txt','-sheet.png','.bin','-widths.bin','.fontlab.json','-README.txt'])assert.ok(buf.includes(need),'AI pack contains '+need);}
+  await page.keyboard.press('Escape');
+  await page.selectOption('#s-pal','rpg-blue');assert.strictEqual(await page.evaluate(()=>getComputedStyle(document.querySelector('#s-prev-box')).backgroundColor),'rgb(24, 48, 168)','preview uses the chosen palette');await page.selectOption('#s-pal','console');
+  const gc=()=>page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.length);const g0=await gc();
+  await page.locator('[data-act=auto-cluster]').scrollIntoViewIfNeeded();await page.click('[data-act=auto-cluster]');assert.ok(/จะสร้าง \d+ อักษร/.test(await page.locator('#cl-info').innerText()),'cluster sheet counts what it will make');
+  await page.click('#bar-done');assert.ok(await gc()>g0,'clusters added');assert.ok(await page.evaluate(()=>FontLabApp.S.fonts.get(FontLabApp.S.cur).glyphs.some(g=>[...g.c].length>1)),'a multi-character glyph exists');
+  await page.click('#u-undo');assert.strictEqual(await gc(),g0,'undo removes the generated clusters');
+  await page.locator('[data-act=conv-font]').scrollIntoViewIfNeeded();await page.click('[data-act=conv-font]');await page.selectOption('#cv-con','nes');await page.click('#bar-done');
+  await page.waitForFunction(()=>{const f=FontLabApp.S.fonts.get(FontLabApp.S.cur);return f&&f.console==='nes'&&f.w===8&&f.h===16&&/→ NES/.test(f.name);},null,{timeout:5000});
+  await page.click('.tab[data-tab=library]');await page.locator('.card:has-text("→ NES")').locator('.more').click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
+  await page.waitForFunction(()=>![...document.querySelectorAll('.card h3')].some(h=>/→ NES/.test(h.innerText)),null,{timeout:5000});}
  /* library: drag a card onto another one to reorder (starters included); the card menu moves it up / down; the order is saved */
  {await page.click('.tab[data-tab=library]');await page.waitForSelector('#page-library .card');
   const seedIds=()=>page.evaluate(()=>[...document.querySelectorAll('#page-library .card[data-group=seed]')].map(c=>c.dataset.open));
