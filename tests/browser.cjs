@@ -103,14 +103,14 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  assert.strictEqual(await page.locator('.tab').count(),4,'library, studio, consoles, settings');assert.strictEqual(await page.locator('.tab[data-tab=cloud]').count(),0,'no cloud tab');assert.strictEqual(await page.locator('[data-act=sync],#c-form').count(),0,'no login form');
  await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:8000});
  const code=await page.evaluate(()=>localStorage.getItem('fontlab.code.v2'));assert.ok(/^[a-f0-9]{64}$/.test(code),'backup code created automatically');
- const vault=()=>vaults.get(code),puts=()=>calls.filter(c=>c==='fontlab_put').length;
+ const vault=()=>vaults.get(code),fontRows=()=>[...vault().values()].filter(r=>r.font_id!=='__workspace'),puts=()=>calls.filter(c=>c==='fontlab_put').length;
  await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ตั้งต้น"))').first().click();await page.waitForSelector('#edit');
  const b3=await page.locator('#edit').boundingBox(),p0=puts();await page.mouse.click(b3.x+b3.width/2,b3.y+b3.height/2);await page.waitForTimeout(700);
  assert.strictEqual(puts(),p0,'an edit alone does not upload');assert.ok(await page.locator('.cdot.dirty').count(),'dot says: not on the cloud yet');
  await page.click('#u-save');await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});
- assert.strictEqual(vault().size,2,'pressing save uploads the 2 user fonts: '+calls.join(','));
+ assert.strictEqual(fontRows().length,2,'pressing save uploads the 2 user fonts: '+calls.join(','));
  assert.ok(![...vault().values()].some(r=>r.font_id.startsWith('builtin')),'untouched starter fonts are not uploaded');
- const row=[...vault().values()][0];assert.ok(row.data.glyphs&&row.width&&row.glyph_count);
+ const row=fontRows()[0];assert.ok(row.data.glyphs&&row.width&&row.glyph_count);
  /* status sheet shows the code, a second device can use it */
  await page.click('#page-studio [data-act=cloud]');assert.ok(/••••/.test(await page.locator('#cc-code').innerText()),'code masked');assert.strictEqual(await page.locator('#cc-auto').getAttribute('aria-checked'),'false','auto upload is off by default');
  await page.click('#cc-show');assert.strictEqual(await page.locator('#cc-code').innerText(),code);await page.keyboard.press('Escape');
@@ -118,19 +118,31 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  assert.notStrictEqual(await page2.evaluate(()=>localStorage.getItem('fontlab.code.v2')),code);
  await page2.click('#page-library [data-act=cloud]');await page2.fill('#cc-in',code);await page2.click('#cc-use');
  await page2.waitForFunction(()=>[...document.querySelectorAll('.card')].filter(c=>!/ตั้งต้น/.test(c.innerText)).length===2,null,{timeout:8000});
- assert.strictEqual(await page2.locator('.card').count(),7,'fonts arrived on the other device');await ctx2.close();
+ assert.strictEqual(await page2.locator('.card').count(),6,'fonts arrived on the other device (the starter font deleted on device 1 is gone here too)');
+ {const ws=pg=>pg.evaluate(()=>({order:JSON.parse(localStorage.getItem('fontlab.order.v1')||'[]'),gone:JSON.parse(localStorage.getItem('fontlab.seedsDeleted.v1')||'[]')}));
+  const w1=await ws(page),w2=await ws(page2);assert.deepStrictEqual(w2.order,w1.order,'font order follows device 1');assert.deepStrictEqual(w2.gone,w1.gone,'deleted starter fonts follow device 1');assert.ok(w1.gone.includes('builtin-seaglass-th'),'device 1 had deleted a starter font');
+  assert.strictEqual(await page2.locator('[data-open=builtin-seaglass-th]').count(),0,'deleted starter font does not come back on device 2');
+  assert.ok([...vault().values()].some(r=>r.font_id==='__workspace'),'workspace record stored in the vault');}
+ await ctx2.close();
+ /* "make every device like this one": cloud fonts this device does not have are removed and remembered as deleted */
+ {vault().set('extra-font-xyz123',{font_id:'extra-font-xyz123',name:'Only in the cloud',console:'gb',width:8,height:16,bpp:2,glyph_count:1,data:{format:'fontlab/1'},updated_at:new Date().toISOString()});
+  await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=cloud]');await page.click('#cc-mirror');await page.click('[data-act=yes]');
+  await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});
+  assert.ok(!vault().has('extra-font-xyz123'),'mirror removed the cloud-only font');
+  assert.ok(vault().get('__workspace').data.deleted['extra-font-xyz123'],'and remembered it as deleted for the other devices');
+  assert.strictEqual(fontRows().length,2,'this device own fonts stay on the cloud');}
  /* delete -> the dot turns pending, the cloud copy goes on the next sync */
  await page.click('.tab[data-tab=library]');await page.locator('.card:not(:has-text("ตั้งต้น")) .more').first().click();await page.click('[data-act=del]');await page.click('[data-act=yes]');
- await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:5000});assert.strictEqual(vault().size,2,'not removed before syncing');
+ await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:5000});assert.strictEqual(fontRows().length,2,'not removed before syncing');
  await page.click('#page-library [data-act=cloud]');await page.click('#cc-sync');await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});await page.waitForTimeout(300);
- assert.strictEqual(vault().size,1,'deleted font removed from cloud on sync');
+ assert.strictEqual(fontRows().length,1,'deleted font removed from cloud on sync');
  /* opt-in auto upload */
  await page.click('#cc-auto');assert.strictEqual(await page.locator('#cc-auto').getAttribute('aria-checked'),'true');await page.keyboard.press('Escape');
  await page.locator('.card:not(:has-text("ตั้งต้น"))').first().click();await page.waitForSelector('#edit');
- const t1=Math.max(...[...vault().values()].map(r=>Date.parse(r.updated_at)));await page.waitForTimeout(1100);
+ const t1=Math.max(...fontRows().map(r=>Date.parse(r.updated_at)));await page.waitForTimeout(1100);
  const b4=await page.locator('#edit').boundingBox();await page.mouse.click(b4.x+b4.width/2,b4.y+b4.height/3);
  await page.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});await page.waitForTimeout(300);
- assert.ok(Math.max(...[...vault().values()].map(r=>Date.parse(r.updated_at)))>t1,'with auto upload on, an edit reaches the cloud by itself');
+ assert.ok(Math.max(...fontRows().map(r=>Date.parse(r.updated_at)))>t1,'with auto upload on, an edit reaches the cloud by itself');
  await page.click('#page-studio [data-act=cloud]');await page.click('#cc-auto');await page.keyboard.press('Escape');
  await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=cloud]');await page.fill('#cc-in','xyz');await page.click('#cc-use');assert.ok(await page.locator('.toast.on').count(),'bad code rejected');await page.keyboard.press('Escape');
  await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/cloud.png':undefined});
