@@ -98,7 +98,9 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  await page.waitForFunction(()=>document.querySelectorAll('.card').length===5,null,{timeout:5000});assert.strictEqual(await page.locator('[data-act=restore-seeds]').count(),0,'no restore-starters button');
  await page.locator('[data-more=builtin-sword-shield-th]').click();await page.click('[data-act=dup]');await page.waitForFunction(()=>FontLabApp.S.fonts.size===6);
  /* persistence */
- await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');await page.waitForSelector('.card');assert.strictEqual(await page.locator('.card').count(),6,'user fonts persisted');
+ await page.evaluate(()=>localStorage.removeItem('fontlab.ws.v1'));
+ await page.waitForTimeout(700);await page.reload();await page.click('.tab[data-tab=library]');
+ assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('fontlab.ws.v1')||'{}').at>0),'old deletions / order are stamped for the workspace sync after an update');await page.waitForSelector('.card');assert.strictEqual(await page.locator('.card').count(),6,'user fonts persisted');
  /* cloud: uploads only when saving (auto upload is an opt-in switch); no login, no cloud tab */
  assert.strictEqual(await page.locator('.tab').count(),4,'library, studio, consoles, settings');assert.strictEqual(await page.locator('.tab[data-tab=cloud]').count(),0,'no cloud tab');assert.strictEqual(await page.locator('[data-act=sync],#c-form').count(),0,'no login form');
  await page.waitForFunction(()=>document.querySelector('.cdot.dirty'),null,{timeout:8000});
