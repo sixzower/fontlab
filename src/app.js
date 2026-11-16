@@ -40,7 +40,24 @@ const isStarter=f=>isSeed(f)||!!f.starter; /* the 4 shipped fonts, or any font t
 const seedCopy=b=>{const c=structuredClone(b);delete c.builtin;return c;};
 const delSeedKey='fontlab.seedsDeleted.v1';let memDel=[];
 const deletedSeeds=()=>{try{return JSON.parse(localStorage.getItem(delSeedKey)||'[]');}catch{return memDel;}};
-const setDeletedSeeds=a=>{memDel=[...new Set(a)];try{localStorage.setItem(delSeedKey,JSON.stringify(memDel));}catch{}};
+const setDeletedSeeds=(a,quiet)=>{memDel=[...new Set(a)];try{localStorage.setItem(delSeedKey,JSON.stringify(memDel));}catch{}if(!quiet)wsTouch();};
+/* workspace record shared through the cloud: font order, deleted starter fonts, deleted fonts (id → time) */
+const wsKey='fontlab.ws.v1';let memWs={at:0,deleted:{},syncedAt:0};
+const wsRead=()=>{try{return Object.assign({at:0,deleted:{},syncedAt:0},JSON.parse(localStorage.getItem(wsKey)||'{}'));}catch{return memWs;}};
+const wsWrite=w=>{memWs=w;try{localStorage.setItem(wsKey,JSON.stringify(w));}catch{}};
+function wsTouch(){const w=wsRead();w.at=Date.now();wsWrite(w);}
+function wsNoteDeleted(ids){const w=wsRead(),now=Date.now();for(const id of ids)w.deleted[id]=now;const keep=Object.keys(w.deleted).sort((a,b)=>w.deleted[b]-w.deleted[a]).slice(0,300);w.deleted=Object.fromEntries(keep.map(k=>[k,w.deleted[k]]));w.at=now;wsWrite(w);}
+const wsDirty=()=>{const w=wsRead();return w.at>w.syncedAt;};
+const FontLabWs={at:()=>wsRead().at,touch:wsTouch,markDeleted:wsNoteDeleted,
+ get:()=>({order:readOrder(),seedsDeleted:deletedSeeds(),deleted:wsRead().deleted}),
+ alive:id=>S.fonts.has(id),
+ isDeleted:(id,cloudAt)=>{const t=wsRead().deleted[id];return !!t&&t>=cloudAt-1000;},
+ async apply(d,at){saveOrder(Array.isArray(d.order)?d.order:[],true);setDeletedSeeds(Array.isArray(d.seedsDeleted)?d.seedsDeleted:[],true);
+  const w=wsRead();w.deleted={...w.deleted,...(d.deleted&&typeof d.deleted==='object'?d.deleted:{})};w.at=at;w.syncedAt=at;wsWrite(w);
+  for(const [id,t] of Object.entries(w.deleted)){const f=S.fonts.get(id);if(f&&!isSeed(f)&&(f.updatedAt||0)<=t){S.fonts.delete(id);await Store.del(id).catch(()=>{});if(S.cur===id)S.cur=null;}}
+  const gone=new Set(deletedSeeds());for(const [id,f] of [...S.fonts])if(isSeed(f)&&gone.has(id)){S.fonts.delete(id);await Store.del(id).catch(()=>{});if(S.cur===id)S.cur=null;}
+  for(const b of FontLabBuiltins)if(!S.fonts.has(b.id)&&!gone.has(b.id))S.fonts.set(b.id,seedCopy(b));
+  renderLibrary();if(S.tab==='studio')mountStudio();}};
 /* the user's fonts; untouched starter fonts stay out of the cloud until edited */
 const userFonts=()=>[...S.fonts.values()].filter(f=>!(isSeed(f)&&!f.updatedAt));
 const consoleColor=id=>Core.consoleOf(id).tint;
@@ -128,14 +145,14 @@ const cloudText=()=>({dirty:'มีการแก้ไขที่ยังไ
 const syncedKey='fontlab.syncedAt.v1';let memSynced={};
 const getSynced=()=>{try{return JSON.parse(localStorage.getItem(syncedKey)||'{}');}catch{return memSynced;}};
 const markSynced=fonts=>{const m=getSynced();for(const f of fonts)m[f.id]=f.updatedAt;memSynced=m;try{localStorage.setItem(syncedKey,JSON.stringify(m));}catch{}};
-const isDirty=()=>{const m=getSynced();return userFonts().some(f=>m[f.id]!==f.updatedAt)||FontLabCloud.pendingDeletes()>0;};
+const isDirty=()=>{const m=getSynced();return userFonts().some(f=>m[f.id]!==f.updatedAt)||FontLabCloud.pendingDeletes()>0||wsDirty();};
 function markDirty(){if(S.cloud.state!=='busy')setCloud('dirty');}
 /* cloud upload happens when the user presses save (or turns on auto upload); edits only mark the font as not yet on the cloud */
 function scheduleSync(){if(!S.autoCloud){markDirty();return;}clearTimeout(syncTimer);setCloud('busy','รอบันทึกขึ้นคลาวด์…');syncTimer=setTimeout(()=>syncNow(true),syncDelay());}
 let syncing=false,syncAgain=false;
 async function syncNow(quiet,silent,pull=false){if(syncing){syncAgain=true;return;}syncing=true;clearTimeout(syncTimer);setCloud('busy','กำลังซิงก์…');
- try{const r=await FontLabCloud.sync(userFonts(),{pull,onProgress:m=>setCloud('busy',m),onDownload:async raw=>{const f=Core.normalize(raw);S.fonts.set(f.id,f);await Store.put(f);markSynced([f]);}});
-  if(!pull)markSynced(userFonts());S.cloud.last=new Date();S.cloud.count=r.total;setCloud(isDirty()?'dirty':'ok');if(r.downloaded){renderLibrary();toast('ดึงฟอนต์จากคลาวด์ '+r.downloaded+' ตัว');}else if(!quiet)toast('ซิงก์แล้ว');}
+ try{const r=await FontLabCloud.sync(userFonts(),{pull,ws:FontLabWs,onProgress:m=>setCloud('busy',m),onDownload:async raw=>{const f=Core.normalize(raw);S.fonts.set(f.id,f);await Store.put(f);markSynced([f]);}});
+  if(!pull){markSynced(userFonts());const w=wsRead();if(w.at>w.syncedAt&&!(pull)){w.syncedAt=w.at;wsWrite(w);}}S.cloud.last=new Date();S.cloud.count=r.total;setCloud(isDirty()?'dirty':'ok');if(r.downloaded||r.wsApplied){renderLibrary();toast(r.downloaded?'ดึงฟอนต์จากคลาวด์ '+r.downloaded+' ตัว':'อัปเดตลำดับและรายการฟอนต์จากคลาวด์แล้ว');}else if(!quiet)toast('ซิงก์แล้ว');}
  catch(e){setCloud('err',e.message);if(!silent&&(!quiet||!S.cloud.warned)){S.cloud.warned=true;toast(e.message);}}
  finally{syncing=false;if(syncAgain){syncAgain=false;syncNow(true,true);}}}
 async function addFont(f,{open=false}={}){S.fonts.set(f.id,f);await Store.put(f).catch(()=>{});scheduleSync();renderLibrary();if(open)openStudio(f.id);}
@@ -146,7 +163,7 @@ const TABS=[['library','คลังฟอนต์'],['studio','สตูดิ
 const recentKey='fontlab.recent.v1';let memRecent=[];
 const orderKey='fontlab.order.v1';let memOrder=[];
 const readOrder=()=>{try{const a=JSON.parse(localStorage.getItem(orderKey)||'[]');return Array.isArray(a)?a:memOrder;}catch{return memOrder;}};
-const saveOrder=a=>{memOrder=[...new Set(a)];try{localStorage.setItem(orderKey,JSON.stringify(memOrder));}catch{}};
+const saveOrder=(a,quiet)=>{memOrder=[...new Set(a)];try{localStorage.setItem(orderKey,JSON.stringify(memOrder));}catch{}if(!quiet)wsTouch();};
 /* fonts the user never placed come first (a new font lands on top); placed fonts keep their saved position */
 const byOrder=tie=>{const o=readOrder(),ix=id=>o.indexOf(id);return(a,b)=>{const x=ix(a.id),y=ix(b.id);return x<0&&y<0?tie(a,b):x<0?-1:y<0?1:x-y;};};
 const readRecent=()=>{try{return JSON.parse(localStorage.getItem(recentKey)||'[]');}catch{return memRecent;}};
@@ -183,7 +200,7 @@ function cardHtml(f){const c=Core.consoleOf(f.console);
  +'<button class="more" data-more="'+f.id+'" aria-label="ตัวเลือก '+esc(f.name)+'">'+ic('more')+'</button></div>';}
 /* ---------- reorder fonts: drag a card onto another card of the same group, or use the card menu ---------- */
 function cardIds(){return $$('#page-library .card[data-open]').map(c=>c.dataset.open);}
-function commitOrder(ids){saveOrder([...ids,...readOrder().filter(x=>!ids.includes(x)&&S.fonts.has(x))]);renderLibrary();}
+function commitOrder(ids){saveOrder([...ids,...readOrder().filter(x=>!ids.includes(x)&&S.fonts.has(x))]);renderLibrary();scheduleSync();}
 function moveFont(id,targetId){if(id===targetId)return;const group=$('#page-library .card[data-open="'+id+'"]')?.dataset.group,tg=$('#page-library .card[data-open="'+targetId+'"]')?.dataset.group;if(!group||group!==tg)return;
  const ids=cardIds(),from=ids.indexOf(id),to=ids.indexOf(targetId);if(from<0||to<0)return;ids.splice(from,1);ids.splice(to,0,id);commitOrder(ids);}
 function stepFont(id,dir){const card=$('#page-library .card[data-open="'+id+'"]');if(!card)return false;const sib=$$('#page-library .card[data-group="'+card.dataset.group+'"]').map(c=>c.dataset.open),i=sib.indexOf(id),j=i+dir;if(i<0||j<0||j>=sib.length)return false;moveFont(id,sib[j]);return true;}
@@ -301,7 +318,7 @@ function confirmReset(f){const b=FontLabBuiltins.find(x=>x.id===f.id);if(!b)retu
  sheet('<h2>คืน “'+esc(f.name)+'” เป็นของเดิม?</h2><p class="sub">การแก้ไขทั้งหมดของฟอนต์นี้จะหายไป ย้อนกลับไม่ได้</p><div class="actions">'+action('คืนเป็นของเดิม','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
   $('[data-act=yes]',s).onclick=async()=>{closeSheet();const c=seedCopy(b);S.fonts.set(c.id,c);await Store.del(c.id).catch(()=>{});FontLabCloud.markDeleted(c.id);if(S.cur===c.id){S.undo=[];S.redo=[];}renderLibrary();if(S.tab==='studio')mountStudio();toast('คืนเป็นฟอนต์ตั้งต้นแล้ว');};});}
 function confirmDelete(f){sheet('<h2>ลบ “'+esc(f.name)+'” ?</h2><p class="sub">ฟอนต์จะถูกลบจากเครื่องนี้และจากคลาวด์สำรอง ย้อนกลับไม่ได้</p><div class="actions">'+action('ลบ','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
- $('[data-act=yes]',s).onclick=async()=>{closeSheet();S.fonts.delete(f.id);await Store.del(f.id).catch(()=>{});if(isSeed(f))setDeletedSeeds([...deletedSeeds(),f.id]);FontLabCloud.markDeleted(f.id);if(S.cur===f.id)S.cur=null;renderLibrary();if(S.tab==='studio')mountStudio();scheduleSync();toast('ลบแล้ว');};});}
+ $('[data-act=yes]',s).onclick=async()=>{closeSheet();S.fonts.delete(f.id);await Store.del(f.id).catch(()=>{});if(isSeed(f))setDeletedSeeds([...deletedSeeds(),f.id]);FontLabCloud.markDeleted(f.id);wsNoteDeleted([f.id]);if(S.cur===f.id)S.cur=null;renderLibrary();if(S.tab==='studio')mountStudio();scheduleSync();toast('ลบแล้ว');};});}
 
 /* ---------- import ---------- */
 async function importFiles(files,opts={}){
@@ -663,7 +680,7 @@ function cloudSheet(){
   +'<div class="grid2" style="margin-bottom:6px"><button class="btn tint small" id="cc-show">แสดงรหัส</button><button class="btn tint small" id="cc-copy">คัดลอกรหัส</button></div>'
   +'<p class="foot" style="margin:0 4px 12px">ใช้รหัสนี้บนเครื่องอื่นเพื่อดึงฟอนต์ทั้งหมดมา เก็บไว้ให้ดีเหมือนรหัสผ่าน ใครมีรหัสก็เปิดฟอนต์ชุดนี้ได้'+(FontLabCloud.persistent()?'':' · เบราว์เซอร์นี้เก็บรหัสถาวรไม่ได้ จดรหัสไว้ด้วย')+'</p>'
   +'<div class="group-title" style="margin:6px 4px">ใช้รหัสจากเครื่องอื่น</div><div class="field" style="margin:0 0 8px"><input id="cc-in" class="input" placeholder="วางรหัส 64 ตัวอักษร" autocomplete="off" spellcheck="false" aria-label="รหัสสำรองจากเครื่องอื่น"></div>'
-  +'<div class="actions"><button class="row" id="cc-use">เชื่อมต่อด้วยรหัสนี้และรวมฟอนต์</button><button class="row" id="cc-sync">ซิงก์ตอนนี้</button><button class="row" id="cc-sql">คัดลอก SQL ติดตั้ง (ทำครั้งเดียว)</button></div>'
+  +'<div class="actions"><button class="row" id="cc-use">เชื่อมต่อด้วยรหัสนี้และรวมฟอนต์</button><button class="row" id="cc-sync">ซิงก์ตอนนี้</button><button class="row" id="cc-mirror">ทำให้ทุกเครื่องเหมือนเครื่องนี้</button><button class="row" id="cc-sql">คัดลอก SQL ติดตั้ง (ทำครั้งเดียว)</button></div>'
   +'<button class="btn gray block" data-close>ปิด</button>',s=>{
   let shown=false;const code=$('#cc-code',s);
   $('#cc-show',s).onclick=e=>{shown=!shown;code.textContent=shown?FontLabCloud.code():mask(FontLabCloud.code());e.target.textContent=shown?'ซ่อนรหัส':'แสดงรหัส';};
@@ -671,7 +688,12 @@ function cloudSheet(){
   $('#cc-use',s).onclick=()=>{try{FontLabCloud.setCode($('#cc-in',s).value);}catch(e){return toast(e.message);}closeSheet();toast('เชื่อมต่อแล้ว กำลังรวมฟอนต์…');syncNow(false);};
   $('#cc-auto',s).onclick=e=>{S.autoCloud=!S.autoCloud;e.currentTarget.setAttribute('aria-checked',S.autoCloud);try{localStorage.setItem('fontlab.autoCloud',S.autoCloud?'yes':'no');}catch{}if(S.autoCloud&&isDirty())scheduleSync();};
   $('#cc-sync',s).onclick=()=>{syncNow(false);};
+  $('#cc-mirror',s).onclick=()=>{closeSheet();mirrorSheet();};
   $('#cc-sql',s).onclick=async()=>{try{await navigator.clipboard.writeText(FontLabSchema);toast('คัดลอก SQL แล้ว วางใน Supabase SQL Editor แล้วกด Run');}catch{closeSheet();schemaSheet();}};});}
+function mirrorSheet(){sheet('<h2>ทำให้ทุกเครื่องเหมือนเครื่องนี้?</h2><p class="sub">อัปโหลดฟอนต์ทั้งหมด ลำดับ และรายการฟอนต์ตั้งต้นที่ลบไป จากเครื่องนี้ขึ้นคลาวด์ และ <b>ลบฟอนต์บนคลาวด์ที่เครื่องนี้ไม่มี</b> เครื่องอื่นจะเหมือนเครื่องนี้เมื่อเปิดเว็บหรือกดซิงก์ครั้งถัดไป (ฟอนต์ที่เครื่องอื่นแก้ไขหลังจากนี้จะไม่ถูกลบ) การลบบนคลาวด์ย้อนกลับไม่ได้</p><div class="actions">'+action('ทำให้เหมือนเครื่องนี้','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
+ $('[data-act=yes]',s).onclick=async()=>{closeSheet();if(syncing)return toast('กำลังซิงก์อยู่ ลองใหม่อีกครั้ง');syncing=true;setCloud('busy','กำลังทำให้คลาวด์เหมือนเครื่องนี้…');
+  try{const r=await FontLabCloud.mirror(userFonts(),{ws:FontLabWs,onProgress:m=>setCloud('busy',m)});markSynced(userFonts());const w=wsRead();w.syncedAt=w.at;wsWrite(w);S.cloud.last=new Date();setCloud(isDirty()?'dirty':'ok');toast('คลาวด์ตรงกับเครื่องนี้แล้ว · อัปโหลด '+r.uploaded+' · ลบออก '+r.removed);}
+  catch(e){setCloud('err',e.message);toast(e.message);}finally{syncing=false;}};});}
 function schemaSheet(){sheet('<h2>SQL ติดตั้ง</h2><p class="sub">คัดลอกแล้ววางใน Supabase → SQL Editor → Run (ทำครั้งเดียว รันซ้ำได้ปลอดภัย)</p><div class="pre" tabindex="0">'+esc(FontLabSchema)+'</div><button class="btn block" id="sc-copy" data-bar="คัดลอก">คัดลอก SQL</button>',s=>{
  $('#sc-copy',s).onclick=async()=>{try{await navigator.clipboard.writeText(FontLabSchema);toast('คัดลอก SQL แล้ว');}catch{const r=document.createRange();r.selectNodeContents($('.pre',s));getSelection().removeAllRanges();getSelection().addRange(r);toast('เลือกข้อความไว้แล้ว กดคัดลอกด้วยตัวเอง');}};});}
 
