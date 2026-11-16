@@ -765,7 +765,9 @@ addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(TABS.some(x
 (async()=>{
  await Store.init();
  try{for(const raw of await Store.all()){try{const f=Core.normalize(raw);S.fonts.set(f.id,f);}catch{}}}catch{}
- {const gone=deletedSeeds();for(const b of FontLabBuiltins)if(!S.fonts.has(b.id)&&!gone.includes(b.id))S.fonts.set(b.id,seedCopy(b));}
+ {const gone=deletedSeeds();for(const b of FontLabBuiltins)if(!S.fonts.has(b.id)&&!gone.includes(b.id))S.fonts.set(b.id,seedCopy(b));
+  /* deletions / ordering done before the workspace sync existed: stamp them once so the next sync sends them to the other devices */
+  if(!wsRead().at&&(gone.length||readOrder().length))wsTouch();}
  applyTheme(document.documentElement.dataset.theme,false);
  const start=location.hash.slice(1);go(TABS.some(x=>x[0]===start)?start:'library',{push:false});
  if(!Store.persistent())toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บฟอนต์ถาวร · ส่งออกไฟล์ไว้เสมอ');
