@@ -9,7 +9,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  /* mock Supabase: backup vaults (RPC) in memory, keyed by backup code */
  const vaults=new Map();let calls=[];
- await ctx.addInitScript(()=>{window.FontLabSyncDelay=50;});
+ await ctx.addInitScript(()=>{window.FontLabSyncDelay=50;window.FontLabNoShared=true;}); /* the main flow tests personal backup codes; shared mode has its own test below */
  const handler=async route=>{const req=route.request(),u=new URL(req.url()),cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'};
   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
   const json=(b,s=200)=>route.fulfill({status:s,headers:{...cors,'content-type':'application/json'},body:JSON.stringify(b)});
@@ -116,7 +116,7 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
  /* status sheet shows the code, a second device can use it */
  await page.click('#page-studio [data-act=cloud]');assert.ok(/••••/.test(await page.locator('#cc-code').innerText()),'code masked');assert.strictEqual(await page.locator('#cc-auto').getAttribute('aria-checked'),'false','auto upload is off by default');
  await page.click('#cc-show');assert.strictEqual(await page.locator('#cc-code').innerText(),code);await page.keyboard.press('Escape');
- const ctx2=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});await ctx2.route('https://*.supabase.co/**',handler);const page2=await ctx2.newPage();page2.on('pageerror',e=>errors.push(e.message));await page2.goto(base);await page2.waitForSelector('.card');
+ const ctx2=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});await ctx2.route('https://*.supabase.co/**',handler);await ctx2.addInitScript(()=>{window.FontLabNoShared=true;});const page2=await ctx2.newPage();page2.on('pageerror',e=>errors.push(e.message));await page2.goto(base);await page2.waitForSelector('.card');
  assert.notStrictEqual(await page2.evaluate(()=>localStorage.getItem('fontlab.code.v2')),code);
  await page2.click('#page-library [data-act=cloud]');await page2.fill('#cc-in',code);await page2.click('#cc-use');
  await page2.waitForFunction(()=>[...document.querySelectorAll('.card')].filter(c=>!/ตั้งต้น/.test(c.innerText)).length===2,null,{timeout:8000});
@@ -126,6 +126,19 @@ const server=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent
   assert.strictEqual(await page2.locator('[data-open=builtin-seaglass-th]').count(),0,'deleted starter font does not come back on device 2');
   assert.ok([...vault().values()].some(r=>r.font_id==='__workspace'),'workspace record stored in the vault');}
  await ctx2.close();
+ /* shared vault (no code): two fresh devices see the same fonts; "use the cloud instead of this device" drops old local fonts */
+ {const mk=async()=>{const c=await browser.newContext({viewport:{width:1100,height:800},serviceWorkers:'block'});await c.route('https://*.supabase.co/**',handler);await c.addInitScript(()=>{window.FontLabSyncDelay=50;});const p=await c.newPage();await p.goto(base);await p.waitForSelector('.card');return [c,p];};
+  const shared=require('fs').readFileSync(path.join(root,'src/config.js'),'utf8').match(/sharedCode:'([a-f0-9]{64})'/)[1];
+  const [c1,p1]=await mk();assert.strictEqual(await p1.evaluate(()=>FontLabCloud.code()),shared,'device uses the shared vault without a code');
+  await p1.click('#page-library [data-act=cloud]');assert.strictEqual(await p1.locator('#cc-in').count(),0,'no code box in shared mode');await p1.keyboard.press('Escape');
+  await p1.click('.sq[data-act=new]');await p1.fill('#nf-name','ฟอนต์ร่วม');await p1.click('#bar-done');await p1.waitForSelector('#edit');await p1.click('#u-save');await p1.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});
+  assert.ok([...vaults.get(shared).values()].some(r=>r.name==='ฟอนต์ร่วม'),'font saved into the shared vault');
+  const [c2,p2]=await mk();await p2.waitForFunction(()=>[...document.querySelectorAll('.card h3')].some(h=>h.innerText==='ฟอนต์ร่วม'),null,{timeout:8000});
+  const oldId=await p2.evaluate(async()=>{const S=FontLabApp.S;const id='font-old-local-0001';S.fonts.set(id,{format:'fontlab/1',id,name:'ฟอนต์เก่า',console:'gb',w:8,h:16,bpp:2,updatedAt:Date.now(),glyphs:[{c:'ก',p:'0'.repeat(128),a:8}]});return id;});
+  await p2.click('.tab[data-tab=library]');await p2.click('#page-library [data-act=cloud]');await p2.click('#cc-adopt');await p2.click('[data-act=yes]');await p2.waitForFunction(()=>document.querySelector('.cdot.ok'),null,{timeout:8000});
+  assert.ok(!(await p2.evaluate(id=>FontLabApp.S.fonts.has(id),oldId)),'old local font removed by "use the cloud"');assert.ok(await p2.evaluate(()=>[...FontLabApp.S.fonts.values()].some(f=>f.name==='ฟอนต์ร่วม')),'cloud font kept');
+  assert.ok(![...vaults.get(shared).values()].some(r=>r.name==='ฟอนต์เก่า'),'the cloud was not changed by it');
+  await c1.close();await c2.close();}
  /* "make every device like this one": cloud fonts this device does not have are removed and remembered as deleted */
  {vault().set('extra-font-xyz123',{font_id:'extra-font-xyz123',name:'Only in the cloud',console:'gb',width:8,height:16,bpp:2,glyph_count:1,data:{format:'fontlab/1'},updated_at:new Date().toISOString()});
   await page.click('.tab[data-tab=library]');await page.click('#page-library [data-act=cloud]');await page.click('#cc-mirror');await page.click('[data-act=yes]');
