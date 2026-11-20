@@ -676,23 +676,31 @@ function cloudSheet(){
  sheet('<h2>สำรองบนคลาวด์</h2><p class="sub">ไม่ต้องสมัครหรือเข้าสู่ระบบ ฟอนต์ถูกเก็บในเครื่องอัตโนมัติ และส่งขึ้นคลาวด์เมื่อกดปุ่มบันทึก</p>'
   +'<div class="group" style="margin:0 0 12px"><div class="row"><span class="cdot '+S.cloud.state+'"></span><span class="grow"><span id="cloud-status">'+esc(cloudText())+'</span><small>ฟอนต์ของฉัน '+userFonts().length+' ตัว</small></span></div></div>'
   +'<div class="group" style="margin:0 0 12px"><div class="row"><span class="grow">อัปโหลดอัตโนมัติหลังแก้ไข<small>ปิดไว้ (แนะนำ): ส่งขึ้นคลาวด์เฉพาะตอนกดปุ่มบันทึก ลดจำนวนครั้งและข้อมูลที่ส่ง</small></span><button class="switch" role="switch" id="cc-auto" aria-checked="'+S.autoCloud+'" aria-label="อัปโหลดอัตโนมัติหลังแก้ไข"></button></div></div>'
-  +'<div class="group-title" style="margin:6px 4px">รหัสสำรองของคุณ</div><div class="group" style="margin:0 0 6px"><div class="row"><span class="grow" style="font-family:ui-monospace,Menlo,monospace;font-size:14px;overflow-wrap:anywhere" id="cc-code">'+mask(FontLabCloud.code())+'</span></div></div>'
+  +(FontLabCloud.shared()?'<p class="foot" style="margin:0 4px 12px">เว็บนี้ใช้คลาวด์ร่วมกันชุดเดียว ทุกเครื่องที่เปิดเว็บเห็นฟอนต์ชุดเดียวกันโดยไม่ต้องใส่รหัส · ใครมีลิงก์เว็บก็แก้หรือลบฟอนต์ได้ ควรส่งออกไฟล์สำรองไว้เป็นระยะ</p>':'<div class="group-title" style="margin:6px 4px">รหัสสำรองของคุณ</div><div class="group" style="margin:0 0 6px"><div class="row"><span class="grow" style="font-family:ui-monospace,Menlo,monospace;font-size:14px;overflow-wrap:anywhere" id="cc-code">'+mask(FontLabCloud.code())+'</span></div></div>'
   +'<div class="grid2" style="margin-bottom:6px"><button class="btn tint small" id="cc-show">แสดงรหัส</button><button class="btn tint small" id="cc-copy">คัดลอกรหัส</button></div>'
   +'<p class="foot" style="margin:0 4px 12px">ใช้รหัสนี้บนเครื่องอื่นเพื่อดึงฟอนต์ทั้งหมดมา เก็บไว้ให้ดีเหมือนรหัสผ่าน ใครมีรหัสก็เปิดฟอนต์ชุดนี้ได้'+(FontLabCloud.persistent()?'':' · เบราว์เซอร์นี้เก็บรหัสถาวรไม่ได้ จดรหัสไว้ด้วย')+'</p>'
-  +'<div class="group-title" style="margin:6px 4px">ใช้รหัสจากเครื่องอื่น</div><div class="field" style="margin:0 0 8px"><input id="cc-in" class="input" placeholder="วางรหัส 64 ตัวอักษร" autocomplete="off" spellcheck="false" aria-label="รหัสสำรองจากเครื่องอื่น"></div>'
-  +'<div class="actions"><button class="row" id="cc-use">เชื่อมต่อด้วยรหัสนี้และรวมฟอนต์</button><button class="row" id="cc-sync">ซิงก์ตอนนี้</button><button class="row" id="cc-mirror">ทำให้ทุกเครื่องเหมือนเครื่องนี้</button><button class="row" id="cc-sql">คัดลอก SQL ติดตั้ง (ทำครั้งเดียว)</button></div>'
+  +'<div class="group-title" style="margin:6px 4px">ใช้รหัสจากเครื่องอื่น</div><div class="field" style="margin:0 0 8px"><input id="cc-in" class="input" placeholder="วางรหัส 64 ตัวอักษร" autocomplete="off" spellcheck="false" aria-label="รหัสสำรองจากเครื่องอื่น"></div>')
+  +'<div class="actions">'+(FontLabCloud.shared()?'':'<button class="row" id="cc-use">เชื่อมต่อด้วยรหัสนี้และรวมฟอนต์</button>')+'<button class="row" id="cc-sync">ซิงก์ตอนนี้</button><button class="row" id="cc-mirror">ทำให้ทุกเครื่องเหมือนเครื่องนี้</button><button class="row" id="cc-adopt">ใช้ข้อมูลจากคลาวด์แทนเครื่องนี้</button><button class="row" id="cc-sql">คัดลอก SQL ติดตั้ง (ทำครั้งเดียว)</button></div>'
   +'<button class="btn gray block" data-close>ปิด</button>',s=>{
   let shown=false;const code=$('#cc-code',s);
-  $('#cc-show',s).onclick=e=>{shown=!shown;code.textContent=shown?FontLabCloud.code():mask(FontLabCloud.code());e.target.textContent=shown?'ซ่อนรหัส':'แสดงรหัส';};
+  if(code){$('#cc-show',s).onclick=e=>{shown=!shown;code.textContent=shown?FontLabCloud.code():mask(FontLabCloud.code());e.target.textContent=shown?'ซ่อนรหัส':'แสดงรหัส';};
   $('#cc-copy',s).onclick=async()=>{try{await navigator.clipboard.writeText(FontLabCloud.code());toast('คัดลอกรหัสแล้ว');}catch{shown=true;code.textContent=FontLabCloud.code();const r=document.createRange();r.selectNodeContents(code);getSelection().removeAllRanges();getSelection().addRange(r);toast('เลือกรหัสไว้แล้ว กดคัดลอกเอง');}};
-  $('#cc-use',s).onclick=()=>{try{FontLabCloud.setCode($('#cc-in',s).value);}catch(e){return toast(e.message);}closeSheet();toast('เชื่อมต่อแล้ว กำลังรวมฟอนต์…');syncNow(false);};
+  $('#cc-use',s).onclick=()=>{try{FontLabCloud.setCode($('#cc-in',s).value);}catch(e){return toast(e.message);}closeSheet();toast('เชื่อมต่อแล้ว กำลังรวมฟอนต์…');syncNow(false);};}
   $('#cc-auto',s).onclick=e=>{S.autoCloud=!S.autoCloud;e.currentTarget.setAttribute('aria-checked',S.autoCloud);try{localStorage.setItem('fontlab.autoCloud',S.autoCloud?'yes':'no');}catch{}if(S.autoCloud&&isDirty())scheduleSync();};
   $('#cc-sync',s).onclick=()=>{syncNow(false);};
   $('#cc-mirror',s).onclick=()=>{closeSheet();mirrorSheet();};
+  $('#cc-adopt',s).onclick=()=>{closeSheet();adoptSheet();};
   $('#cc-sql',s).onclick=async()=>{try{await navigator.clipboard.writeText(FontLabSchema);toast('คัดลอก SQL แล้ว วางใน Supabase SQL Editor แล้วกด Run');}catch{closeSheet();schemaSheet();}};});}
 function mirrorSheet(){sheet('<h2>ทำให้ทุกเครื่องเหมือนเครื่องนี้?</h2><p class="sub">อัปโหลดฟอนต์ทั้งหมด ลำดับ และรายการฟอนต์ตั้งต้นที่ลบไป จากเครื่องนี้ขึ้นคลาวด์ และ <b>ลบฟอนต์บนคลาวด์ที่เครื่องนี้ไม่มี</b> เครื่องอื่นจะเหมือนเครื่องนี้เมื่อเปิดเว็บหรือกดซิงก์ครั้งถัดไป (ฟอนต์ที่เครื่องอื่นแก้ไขหลังจากนี้จะไม่ถูกลบ) การลบบนคลาวด์ย้อนกลับไม่ได้</p><div class="actions">'+action('ทำให้เหมือนเครื่องนี้','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
  $('[data-act=yes]',s).onclick=async()=>{closeSheet();if(syncing)return toast('กำลังซิงก์อยู่ ลองใหม่อีกครั้ง');syncing=true;setCloud('busy','กำลังทำให้คลาวด์เหมือนเครื่องนี้…');
   try{const r=await FontLabCloud.mirror(userFonts(),{ws:FontLabWs,onProgress:m=>setCloud('busy',m)});markSynced(userFonts());const w=wsRead();w.syncedAt=w.at;wsWrite(w);S.cloud.last=new Date();setCloud(isDirty()?'dirty':'ok');toast('คลาวด์ตรงกับเครื่องนี้แล้ว · อัปโหลด '+r.uploaded+' · ลบออก '+r.removed);}
+  catch(e){setCloud('err',e.message);toast(e.message);}finally{syncing=false;}};});}
+function adoptSheet(){sheet('<h2>ใช้ข้อมูลจากคลาวด์แทนเครื่องนี้?</h2><p class="sub">ฟอนต์ของฉันในเครื่องนี้ที่ไม่มีบนคลาวด์จะถูก <b>ลบออกจากเครื่องนี้</b> ฟอนต์ที่มีบนคลาวด์จะถูกดึงมาทับของในเครื่อง และใช้ลำดับกับรายการฟอนต์ตั้งต้นตามคลาวด์ ใช้กับเครื่องที่มีฟอนต์เก่าหรือไม่ถูกต้อง คลาวด์ไม่ถูกแก้ไข</p><div class="actions">'+action('ใช้ข้อมูลจากคลาวด์','yes','red')+'</div><button class="btn gray block" data-close>ยกเลิก</button>',s=>{
+ $('[data-act=yes]',s).onclick=async()=>{closeSheet();if(syncing)return toast('กำลังซิงก์อยู่ ลองใหม่อีกครั้ง');syncing=true;setCloud('busy','กำลังดึงข้อมูลจากคลาวด์…');
+  try{const got=new Set();const r=await FontLabCloud.adopt({ws:FontLabWs,onProgress:m=>setCloud('busy',m),onDownload:async raw=>{const f=Core.normalize(raw);got.add(f.id);S.fonts.set(f.id,f);await Store.put(f);markSynced([f]);}});
+   let removed=0;for(const f of userFonts())if(!got.has(f.id)&&!isSeed(f)){S.fonts.delete(f.id);await Store.del(f.id).catch(()=>{});if(S.cur===f.id)S.cur=null;removed++;}
+   for(const f of userFonts())if(isSeed(f)&&!got.has(f.id)){const b=FontLabBuiltins.find(x=>x.id===f.id);if(b){S.fonts.set(f.id,seedCopy(b));await Store.del(f.id).catch(()=>{});}}
+   const w=wsRead();w.syncedAt=w.at;wsWrite(w);S.cloud.last=new Date();setCloud(isDirty()?'dirty':'ok');renderLibrary();if(S.tab==='studio')mountStudio();toast('ใช้ข้อมูลจากคลาวด์แล้ว · ดึง '+r.downloaded+' · ลบในเครื่อง '+removed);}
   catch(e){setCloud('err',e.message);toast(e.message);}finally{syncing=false;}};});}
 function schemaSheet(){sheet('<h2>SQL ติดตั้ง</h2><p class="sub">คัดลอกแล้ววางใน Supabase → SQL Editor → Run (ทำครั้งเดียว รันซ้ำได้ปลอดภัย)</p><div class="pre" tabindex="0">'+esc(FontLabSchema)+'</div><button class="btn block" id="sc-copy" data-bar="คัดลอก">คัดลอก SQL</button>',s=>{
  $('#sc-copy',s).onclick=async()=>{try{await navigator.clipboard.writeText(FontLabSchema);toast('คัดลอก SQL แล้ว');}catch{const r=document.createRange();r.selectNodeContents($('.pre',s));getSelection().removeAllRanges();getSelection().addRange(r);toast('เลือกข้อความไว้แล้ว กดคัดลอกด้วยตัวเอง');}};});}
@@ -772,6 +780,8 @@ addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(TABS.some(x
  const start=location.hash.slice(1);go(TABS.some(x=>x[0]===start)?start:'library',{push:false});
  if(!Store.persistent())toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บฟอนต์ถาวร · ส่งออกไฟล์ไว้เสมอ');
  syncNow(true,true,true);
+ /* coming back to the tab pulls what other devices saved meanwhile (at most every 30 s) */
+ {let lastPull=Date.now();document.addEventListener('visibilitychange',()=>{if(document.hidden||Date.now()-lastPull<30000)return;lastPull=Date.now();syncNow(true,true,true);});}
 })();
 /* ---------- iOS-style tooltips for icon-only buttons (mouse hover or keyboard focus) ---------- */
 (()=>{const tip=document.createElement('div');tip.className='tip';tip.setAttribute('role','tooltip');document.body.append(tip);let timer=0,cur=null;

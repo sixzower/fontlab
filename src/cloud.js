@@ -3,11 +3,12 @@
 const FontLabCloud=(()=>{
  const cfg=()=>window.FontLabConfig,KEY='fontlab.code.v2',DEL='fontlab.deleted.v1',WS_ID='__workspace',valid=c=>/^[a-f0-9]{64}$/.test(c||'');
  let mem=null,memTombs=[];
+ const sharedCode=()=>{const c=cfg()&&cfg().sharedCode;return !window.FontLabNoShared&&valid(c)?c:null;};
  const hex=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('');
- function code(){try{const c=localStorage.getItem(KEY);if(valid(c)){mem=c;return c;}}catch{}if(!valid(mem)){mem=hex(32);try{localStorage.setItem(KEY,mem);}catch{}}return mem;}
- function setCode(c){c=String(c||'').trim().toLowerCase();if(!valid(c))throw Error('รหัสต้องเป็นตัวอักษร 0-9 a-f จำนวน 64 ตัว');mem=c;try{localStorage.setItem(KEY,c);}catch{}return c;}
+ function code(){const sh=sharedCode();if(sh)return sh;try{const c=localStorage.getItem(KEY);if(valid(c)){mem=c;return c;}}catch{}if(!valid(mem)){mem=hex(32);try{localStorage.setItem(KEY,mem);}catch{}}return mem;}
+ function setCode(c){if(sharedCode())throw Error('เว็บนี้ใช้คลาวด์ร่วมกันอยู่ ไม่ต้องใส่รหัส');c=String(c||'').trim().toLowerCase();if(!valid(c))throw Error('รหัสต้องเป็นตัวอักษร 0-9 a-f จำนวน 64 ตัว');mem=c;try{localStorage.setItem(KEY,c);}catch{}return c;}
  const newCode=()=>setCode(hex(32));
- const persistent=()=>{try{return localStorage.getItem(KEY)===mem&&valid(mem);}catch{return false;}};
+ const persistent=()=>{if(sharedCode())return true;try{return localStorage.getItem(KEY)===mem&&valid(mem);}catch{return false;}};
  function explain(res,body){const m=body?.message||body?.hint||body?.error||'';
   if(res.status===404||/Could not find the function|PGRST202|does not exist/i.test(m))return'ยังไม่ได้ติดตั้ง SQL บนคลาวด์';
   if(/Backup limit/i.test(m))return'เกิน 500 ฟอนต์ต่อรหัส';if(/Invalid/i.test(m))return'คำขอไม่ถูกต้อง';return m||'เกิดข้อผิดพลาด ('+res.status+')';}
@@ -42,5 +43,11 @@ const FontLabCloud=(()=>{
   if(extra.length){onProgress('กำลังลบ '+extra.length+' ฟอนต์ที่เครื่องนี้ไม่มี…');await remove(extra);ws.markDeleted(extra);}
   if(local.length){onProgress('กำลังอัปโหลด '+local.length+' ฟอนต์…');await put(local);}
   ws.touch();await putWs(ws);setTombs([]);return{uploaded:local.length,removed:extra.length};}
- return{code,setCode,newCode,persistent,sync,mirror,pendingDeletes:()=>tombs().length,markDeleted:id=>setTombs([...tombs(),id])};
+ /* the other way round: this device drops what the cloud does not have and takes the cloud's fonts, order and deletions */
+ async function adopt({ws,onDownload,onProgress=()=>{}}){
+  onProgress('กำลังตรวจรายการบนคลาวด์…');const all=await listMeta(),wsMeta=all.find(m=>m.font_id===WS_ID),ids=all.map(m=>m.font_id).filter(id=>id!==WS_ID);
+  if(wsMeta){const r=(await get([WS_ID]))[0];if(r&&r.data)await ws.apply(r.data,Date.parse(wsMeta.updated_at));}
+  let n=0;for(let i=0;i<ids.length;i+=5){onProgress('กำลังดึงฟอนต์ '+Math.min(i+5,ids.length)+'/'+ids.length+'…');for(const r of await get(ids.slice(i,i+5))){n++;await onDownload(r.data);}}
+  setTombs([]);return{ids,downloaded:n};}
+ return{code,setCode,newCode,persistent,sync,mirror,adopt,shared:()=>!!sharedCode(),pendingDeletes:()=>tombs().length,markDeleted:id=>setTombs([...tombs(),id])};
 })();
